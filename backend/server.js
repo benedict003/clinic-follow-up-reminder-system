@@ -9,6 +9,28 @@ import { startWorker } from './worker.js';
 
 const app = express();
 app.disable('x-powered-by');
+// ── DEV ONLY: lets `flutter run -d chrome` (a different port) call this API. ──
+// Enabled only when DEV_CORS=true. Never set in .env.example's committed value.
+if (cfg.devCors) {
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      // Cannot be "*" — credentials are in play.
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods',
+        'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers',
+        'Content-Type, Accept, X-CSRF-Token, X-Requested-With');
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+    // Answer the preflight here, or requireLogin returns 401 with no CORS headers.
+    if (req.method === 'OPTIONS') return res.status(204).end();
+    return next();
+  });
+  console.log('DEV_CORS enabled — cross-origin access allowed for development only');
+}
 app.use(express.json({ limit: '64kb' }));
 
 // Flutter Web build, served same-origin (no CORS involved).

@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 
+import 'client_factory.dart';
+
 class ApiException implements Exception {
   ApiException(this.message, [this.status]);
   final String message;
@@ -23,12 +25,13 @@ class ClinicApi {
   ClinicApi._();
   static final ClinicApi instance = ClinicApi._();
 
-  final http.Client _client = http.Client();
+  final http.Client _client = createClient();
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static const _kBaseUrl = 'cfr.baseUrl';
   static const _kCookie = 'cfr.session';
   static const _kCsrf = 'cfr.csrf';
+  static const String _browserCookie = 'browser-managed';
   static final RegExp _cookiePattern = RegExp(r'cfr_session=([a-f0-9]{64})');
 
   String baseUrl = AppConfig.defaultBaseUrl;
@@ -148,10 +151,15 @@ class ClinicApi {
         .timeout(AppConfig.requestTimeout);
 
     final data = _decode(res);
-    final token = _cookiePattern.firstMatch(res.headers['set-cookie'] ?? '')?.group(1);
-    if (token == null) throw ApiException('The server did not send a cfr_session cookie.');
 
-    _sessionToken = token;
+    // Web: `Set-Cookie` is a forbidden response header — the browser stores the
+    // cookie but never exposes it to Dart. Trust the browser's jar there.
+    final token = _cookiePattern.firstMatch(res.headers['set-cookie'] ?? '')?.group(1);
+    if (token == null && !kIsWeb) {
+      throw ApiException('The server did not send a cfr_session cookie.');
+    }
+
+    _sessionToken = token ?? _browserCookie;
     _csrfToken = data['csrfToken']?.toString();
     user = (data['user'] as Map?)?.cast<String, dynamic>();
     await _persist();
@@ -165,7 +173,11 @@ class ClinicApi {
     } catch (e) {
       debugPrint('storage read skipped ($e)');
     }
-    if (_sessionToken == null) return false;
+
+    // Web: the cookie lives in the browser jar even when secure storage is empty,
+    // so always probe /api/session there.
+    if (_sessionToken == null && !kIsWeb) return false;
+
     try {
       final data = await _request('GET', '/api/session');
       user = (data['user'] as Map?)?.cast<String, dynamic>();
@@ -181,7 +193,7 @@ class ClinicApi {
   }
 
   Future<void> signOut() async {
-    if (_sessionToken != null) {
+    if (_sessionToken != null || kIsWeb) {
       try {
         await _request('POST', '/api/logout');
       } catch (_) {}
@@ -200,8 +212,12 @@ class ClinicApi {
   Future<void> _persist() async {
     try {
       await _storage.write(key: _kBaseUrl, value: baseUrl);
-      if (_sessionToken != null) await _storage.write(key: _kCookie, value: _sessionToken);
-      if (_csrfToken != null) await _storage.write(key: _kCsrf, value: _csrfToken);
+      if (_sessionToken != null && _sessionToken!.length == 64) {
+        await _storage.write(key: _kCookie, value: _sessionToken);
+      }
+      if (_csrfToken != null) {
+        await _storage.write(key: _kCsrf, value: _csrfToken);
+      }
     } catch (e) {
       debugPrint('storage write skipped ($e)');
     }
