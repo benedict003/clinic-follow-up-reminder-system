@@ -1,0 +1,15 @@
+{
+  "name": "clinic-follow-up-reminder-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "seed": "node --env-file=.env scripts/seed.js",
+    "mock": "node scripts/mock-gateway.js",
+    "migrate": "node migrate.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.24.6"
+  }
+}
