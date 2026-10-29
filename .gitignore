@@ -1,0 +1,6 @@
+node_modules/
+backend/.env
+backend/public/app/
+build/
+.dart_tool/
+*.log
