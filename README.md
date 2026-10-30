@@ -178,12 +178,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Set at minimum:
 
 ```ini
-PORT=3400
+PORT=<your port ex. 3100>
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=<your db port ex. 3306>
 DB_USER=root
 DB_PASSWORD=
-DB_NAME=clinic_followup_lab
+DB_NAME=<your database name>
 SESSION_SECRET=<64 random hex characters from the command above>
 INTEGRATION_ENDPOINT=http://127.0.0.1:4699/notify
 INTEGRATION_MAX_ATTEMPTS=4
@@ -192,7 +192,7 @@ INTEGRATION_MAX_BACKOFF_MS=4000
 INTEGRATION_TIMEOUT_MS=3000
 INTEGRATION_POLL_MS=2000
 INTEGRATION_STUCK_MS=60000
-DEV_CORS=false
+DEV_CORS=true
 ```
 
 `DEV_CORS=false` is correct for the same-origin build. Set it to `true` only while running the Flutter dev server on port 8080, and restart the backend after changing it.
