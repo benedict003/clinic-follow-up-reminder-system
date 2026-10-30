@@ -181,8 +181,8 @@ Set at minimum:
 PORT=<your port ex. 3100>
 DB_HOST=127.0.0.1
 DB_PORT=<your db port ex. 3306>
-DB_USER=root
-DB_PASSWORD=
+DB_USER=<your database user>
+DB_PASSWORD=<your database password>
 DB_NAME=<your database name>
 SESSION_SECRET=<64 random hex characters from the command above>
 INTEGRATION_ENDPOINT=http://127.0.0.1:4699/notify
