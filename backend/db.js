@@ -7,6 +7,7 @@ export const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   enableKeepAlive: true,
+  dateStrings: true,
 });
 
 export async function withTx(work) {

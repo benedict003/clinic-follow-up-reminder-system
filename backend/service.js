@@ -17,6 +17,18 @@ const today = () => {
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
+/**
+ * Normalize a MySQL DATE to 'YYYY-MM-DD'.
+ * mysql2 yields a Date object unless dateStrings is set, and String(date) is
+ * "Thu Oct 29 2026 ...", so slicing it produces a weekday name - not a date.
+ */
+const ymd = v => {
+  if (v == null || v === '') return '';
+  if (typeof v === 'string') return v.slice(0, 10);
+  const d = v instanceof Date ? v : new Date(v);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
 export const newCorrelationId = () => randomBytes(16).toString('hex');
 export const idempotencyKey = (followUpId, version) =>
   createHash('sha256').update(`follow_up_reminder|${followUpId}|${version}`).digest('hex');
@@ -39,7 +51,7 @@ export async function listFollowUps({ status = '', limit = 100 } = {}) {
 function publicFollowUp(r) {
   return {
     id: r.id, patientId: r.patient_id, patientName: r.patient_name,
-    dueDate: r.due_date, reason: r.reason, status: r.status,
+    dueDate: ymd(r.due_date), reason: r.reason, status: r.status,
     version: Number(r.version), createdAt: r.created_at,
   };
 }
@@ -70,26 +82,36 @@ export async function createFollowUp(body, actor) {
 // ── queue ──────────────────────────────────────────────────────────────────
 /** Enqueue is only allowed for a follow-up that is scheduled and due. */
 export async function enqueue(input, actor) {
+  // 1 - validate the input shape
   const followUpId = Number(input?.followUpId);
   if (!Number.isInteger(followUpId) || followUpId < 1) {
     throw httpError(400, 'followUpId must be a positive whole number.');
   }
+
+  // 2 - read the authoritative row; fu does not exist before this line
   const [rows] = await pool.execute(
     'SELECT id, status, due_date, version FROM follow_ups WHERE id = ?', [followUpId]
   );
   const fu = rows[0];
   if (!fu) throw httpError(404, 'Follow-up not found.');
+
+  // 3 - business preconditions, only now that fu exists
   if (fu.status !== 'scheduled') {
     throw httpError(409, `Only scheduled follow-ups can be queued (this one is "${fu.status}").`);
   }
-  if (String(fu.due_date).slice(0, 10) > today()) {
-    throw httpError(409, `This follow-up is not due until ${String(fu.due_date).slice(0, 10)}.`);
+  const due = ymd(fu.due_date);
+  if (due > today()) {
+    throw httpError(409, `This follow-up is not due until ${due}.`);
   }
 
+  // 4 - idempotency: same follow-up and same version means the same job
   const key = idempotencyKey(followUpId, fu.version);
-  const [ex] = await pool.execute('SELECT * FROM reminder_jobs WHERE idempotency_key = ?', [key]);
-  if (ex[0]) return { job: publicJob(ex[0]), created: false };
+  const [existing] = await pool.execute(
+    'SELECT * FROM reminder_jobs WHERE idempotency_key = ?', [key]
+  );
+  if (existing[0]) return { job: publicJob(existing[0]), created: false };
 
+  // 5 - insert, and treat a racing duplicate as success
   const stamp = now();
   try {
     const [res] = await pool.execute(
@@ -103,7 +125,9 @@ export async function enqueue(input, actor) {
     return { job: await findJob(res.insertId), created: true };
   } catch (e) {
     if (e?.code === 'ER_DUP_ENTRY') {
-      const [w] = await pool.execute('SELECT * FROM reminder_jobs WHERE idempotency_key = ?', [key]);
+      const [w] = await pool.execute(
+        'SELECT * FROM reminder_jobs WHERE idempotency_key = ?', [key]
+      );
       if (w[0]) return { job: publicJob(w[0]), created: false };
     }
     throw e;
@@ -154,7 +178,7 @@ export async function listJobs({ status = '', limit = 50 } = {}, actor) {
   }
   return {
     jobs: rows.map(r => ({ ...publicJob(r), patientId: r.patient_id,
-      patientName: r.patient_name, dueDate: r.due_date })),
+      patientName: r.patient_name, dueDate: ymd(r.due_date) })),
     counts: summary, unreadAlerts,
   };
 }
@@ -209,7 +233,7 @@ export async function inspectQueuedRecord(job) {
     action: 'send', code: null, text: null,
     body: {
       followUpId: fu.id,
-      dueDate: String(fu.due_date).slice(0, 10),
+      dueDate: ymd(fu.due_date),
       // No patient name, no contact details: the gateway only needs the id.
       role: cfg.alertRole,
     },
@@ -237,7 +261,7 @@ export async function claimNextJob() {
     const [rows] = await c.execute(
       `SELECT * FROM reminder_jobs
         WHERE status = 'queued' AND next_run_at <= ?
-        ORDER BY id ASC LIMIT 1 FOR UPDATE SKIP LOCKED`, [Date.now()]
+        ORDER BY id ASC LIMIT 1 FOR UPDATE`, [Date.now()]
     );
     if (!rows[0]) return null;
     await c.execute(

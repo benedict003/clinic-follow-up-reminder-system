@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "follow_up_id": 1,
+    "follow_up_version": 1,
+    "status": "queued",
+    "attempts": 0,
+    "max_attempts": 4,
+    "last_error_code": null
+  }
+]
