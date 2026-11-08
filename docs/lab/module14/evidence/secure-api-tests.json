@@ -1,0 +1,65 @@
+[
+  {
+    "id": "A0",
+    "name": "Health is public",
+    "expected": "200",
+    "observed": "200",
+    "pass": true
+  },
+  {
+    "id": "A1",
+    "name": "Nurse cannot disclose",
+    "expected": "403 role message",
+    "observed": "403 Only a doctor can disclose a record to the partner.",
+    "pass": true
+  },
+  {
+    "id": "A2",
+    "name": "Doctor can disclose",
+    "expected": "200 delivered",
+    "observed": "200 ok=[object Object] ",
+    "pass": false
+  },
+  {
+    "id": "A3",
+    "name": "No CSRF token refused before the role gate",
+    "expected": "403 CSRF",
+    "observed": "403 Invalid CSRF token.",
+    "pass": true
+  },
+  {
+    "id": "A4",
+    "name": "Anonymous refused",
+    "expected": "401",
+    "observed": "401 Authentication required.",
+    "pass": true
+  },
+  {
+    "id": "A5",
+    "name": "Nurse cannot read the disclosure history",
+    "expected": "403",
+    "observed": "403 Only a doctor can disclose a record to the partner.",
+    "pass": true
+  },
+  {
+    "id": "A6",
+    "name": "Doctor can read the disclosure history",
+    "expected": "200 list",
+    "observed": "200 5 rows",
+    "pass": true
+  },
+  {
+    "id": "A7",
+    "name": "API reports it cannot decrypt",
+    "expected": "recipientDecrypt false",
+    "observed": "200 recipientDecrypt=false",
+    "pass": true
+  },
+  {
+    "id": "A8",
+    "name": "Key fingerprints not anonymous",
+    "expected": "401",
+    "observed": "401",
+    "pass": true
+  }
+]

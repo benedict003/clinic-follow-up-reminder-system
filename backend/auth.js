@@ -78,7 +78,8 @@ export function csrfProtection(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   const sent = req.headers['x-csrf-token'];
   const held = req.session?.csrfToken;
-  if (!sent || !held || sent.length !== held.length ||
+  if (typeof sent !== 'string' || typeof held !== 'string' ||
+      sent.length !== held.length ||
       !timingSafeEqual(Buffer.from(sent), Buffer.from(held))) {
     const e = new Error('Invalid CSRF token.'); e.status = 403; return next(e);
   }

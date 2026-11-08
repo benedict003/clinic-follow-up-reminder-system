@@ -50,12 +50,13 @@ const server = https.createServer({
   key: readFileSync(process.env.SECURE_PARTNER_CERT_KEY),
   minVersion: 'TLSv1.2',
 }, async (req, res) => {
-  if (req.method === 'GET' && req.url === '/health') {
-    return json(res, 200, { ok: true, service: 'partner-receiver', recipient: RECIPIENT });
-  }
-  if (req.method !== 'POST' || req.url !== '/receive') {
-    return json(res, 404, { error: 'Not found.' });
-  }
+  const reqPath = String(req.url || '').split('?')[0];
+if (req.method === 'GET' && reqPath === '/health') {
+  return json(res, 200, { ok: true, service: 'partner-receiver', recipient: RECIPIENT });
+}
+if (req.method !== 'POST' || reqPath !== '/receive') {
+  return json(res, 404, { error: 'Not found.' });
+}
 
   try {
     const body = JSON.parse(await readBody(req));

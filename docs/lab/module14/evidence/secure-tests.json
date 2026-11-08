@@ -1,0 +1,128 @@
+[
+  {
+    "id": "T1",
+    "name": "Genuine envelope accepted",
+    "expected": "200 delivered",
+    "observed": "200 receipt",
+    "pass": true
+  },
+  {
+    "id": "T2",
+    "name": "Identical envelope replayed",
+    "expected": "409 REPLAY_DETECTED",
+    "observed": "409 REPLAY_DETECTED",
+    "pass": true
+  },
+  {
+    "id": "T3",
+    "name": "Envelope past its exp",
+    "expected": "410 ENVELOPE_EXPIRED",
+    "observed": "410 ENVELOPE_EXPIRED",
+    "pass": true
+  },
+  {
+    "id": "T4",
+    "name": "Ciphertext flipped, signature intact",
+    "expected": "422 SIGNATURE_INVALID",
+    "observed": "422 SIGNATURE_INVALID",
+    "pass": true
+  },
+  {
+    "id": "T5",
+    "name": "Ciphertext flipped and re-signed",
+    "expected": "422 INTEGRITY_CHECK_FAILED",
+    "observed": "422 INTEGRITY_CHECK_FAILED",
+    "pass": true
+  },
+  {
+    "id": "T6",
+    "name": "Header altered and re-signed",
+    "expected": "422 INTEGRITY_CHECK_FAILED",
+    "observed": "422 INTEGRITY_CHECK_FAILED",
+    "pass": true
+  },
+  {
+    "id": "T7",
+    "name": "Wrapped for a different key",
+    "expected": "422 KEY_UNWRAP_FAILED",
+    "observed": "422 KEY_UNWRAP_FAILED",
+    "pass": true
+  },
+  {
+    "id": "T8",
+    "name": "Algorithm downgrade in the header",
+    "expected": "400 ALGORITHM_NOT_ALLOWED",
+    "observed": "400 ALGORITHM_NOT_ALLOWED",
+    "pass": true
+  },
+  {
+    "id": "T9",
+    "name": "Truncated envelope",
+    "expected": "400 MALFORMED_ENVELOPE",
+    "observed": "400 MALFORMED_ENVELOPE",
+    "pass": true
+  },
+  {
+    "id": "T10",
+    "name": "Addressed to another recipient",
+    "expected": "422 AUDIENCE_MISMATCH",
+    "observed": "422 AUDIENCE_MISMATCH",
+    "pass": true
+  },
+  {
+    "id": "T11",
+    "name": "Certificate not signed by the pinned CA",
+    "expected": "TLS handshake failure",
+    "observed": "no response DEPTH_ZERO_SELF_SIGNED_CERT",
+    "pass": true
+  },
+  {
+    "id": "T12",
+    "name": "Plaintext absent from wire and receipt",
+    "expected": "no marker on the wire or in the response",
+    "observed": "status 200; envelope=false; response=false",
+    "pass": true
+  },
+  {
+    "id": "T13",
+    "name": "Sender process cannot decrypt what it sends",
+    "expected": "recipientDecrypt absent",
+    "observed": "absent",
+    "pass": true
+  },
+  {
+    "id": "T14",
+    "name": "Sender process holds its signing key",
+    "expected": "senderSigning present",
+    "observed": "present (fp b27727ea7c3fdc25)",
+    "pass": true
+  },
+  {
+    "id": "T15",
+    "name": "issuedAt far in the future",
+    "expected": "422 NOT_YET_VALID",
+    "observed": "422 NOT_YET_VALID",
+    "pass": true
+  },
+  {
+    "id": "T16",
+    "name": "Header altered without re-signing",
+    "expected": "422 SIGNATURE_INVALID",
+    "observed": "422 SIGNATURE_INVALID",
+    "pass": true
+  },
+  {
+    "id": "T17",
+    "name": "Wrapped key replaced and re-signed",
+    "expected": "422 KEY_UNWRAP_FAILED",
+    "observed": "422 KEY_UNWRAP_FAILED",
+    "pass": true
+  },
+  {
+    "id": "T18",
+    "name": "A rejected replay adds no inbox row",
+    "expected": "count unchanged after 409",
+    "observed": "accept 200; replay 409; inbox 5 -> 6 -> 6",
+    "pass": true
+  }
+]

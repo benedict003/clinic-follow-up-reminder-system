@@ -1,0 +1,21 @@
+{
+  "keyId": "clinic-2026-q4",
+  "keys": {
+    "senderSigning": {
+      "present": true,
+      "fingerprint": "b27727ea7c3fdc25"
+    },
+    "senderVerify": {
+      "present": true,
+      "fingerprint": "b966428412f72bd7"
+    },
+    "recipientEncrypt": {
+      "present": true,
+      "fingerprint": "be9d8145a7357f4d"
+    },
+    "recipientDecrypt": {
+      "present": true,
+      "fingerprint": "3075e6c87cfd8c42"
+    }
+  }
+}

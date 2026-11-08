@@ -27,11 +27,14 @@ const OAEP = {
   oaepHash: 'sha256',
 };
 
+const REQUIRED_HEADER = ['keyId', 'messageId', 'sender', 'recipient',
+                         'issuedAt', 'exp', 'iv', 'wrappedKey'];
+
 /**
  * Seal a payload for one recipient.
- * A fresh 32-byte data key and a fresh 12-byte IV are generated per call.
- * Reusing either with the same key destroys GCM confidentiality entirely, so
- * neither is ever accepted from a caller.
+ * A fresh 32-byte data key and a fresh 12-byte IV per call. Reusing either with
+ * the same key destroys GCM confidentiality entirely, so neither is ever
+ * accepted from a caller.
  */
 export function seal({
   payload,
@@ -89,11 +92,13 @@ export function seal({
 
 /**
  * Open and verify an envelope. The order is deliberate:
- *   structure -> algorithm allowlist -> signature -> audience/time -> unwrap -> AEAD
+ *   structure -> header parse -> version -> algorithm allowlist -> signature
+ *   -> audience -> window -> unwrap -> AEAD
  *
  * The allowlist runs before the signature so a downgrade attempt costs one string
- * comparison. The signature runs before any asymmetric operation on attacker-
- * supplied ciphertext. Replay is recorded by the caller only after this succeeds.
+ * comparison. The signature runs before any asymmetric operation on
+ * attacker-supplied ciphertext. Replay is recorded by the caller only after this
+ * succeeds.
  */
 export function open({
   envelope,
@@ -109,11 +114,26 @@ export function open({
   }
   const [, headerB64, ctB64, tagB64, sigB64] = parts;
 
+  // Parse first. `header` must be assigned before any field is read: reading it
+  // above this line is a temporal dead zone error, not a validation failure, and
+  // it would present as a 500 for every envelope including malformed ones.
   let header;
   try {
     header = JSON.parse(unb64u(headerB64).toString('utf8'));
   } catch {
     throw new EnvelopeError('MALFORMED_HEADER', 'Envelope header is not valid JSON.', 400);
+  }
+  if (header === null || typeof header !== 'object' || Array.isArray(header)) {
+    throw new EnvelopeError('MALFORMED_HEADER', 'Envelope header must be a JSON object.', 400);
+  }
+
+  if (Number(header.v) !== 1) {
+    throw new EnvelopeError('MALFORMED_HEADER', 'Unsupported envelope version.', 400);
+  }
+  for (const k of REQUIRED_HEADER) {
+    if (typeof header[k] !== 'string' || header[k].length === 0) {
+      throw new EnvelopeError('MALFORMED_HEADER', `Header is missing "${k}".`, 400);
+    }
   }
 
   if (header.alg !== ALG || header.enc !== ENC || header.sig !== SIG) {
