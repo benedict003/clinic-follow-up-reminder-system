@@ -1,0 +1,924 @@
+﻿<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Clinic Follow-Up Reminder System - User Manual</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family:"Calibri","Segoe UI",sans-serif; font-size:10.5pt; line-height:1.42; color:#111; }
+  h1 { font-size:20pt; color:#0F6E62; margin:0 0 4pt 0; }
+  h2 { font-size:14pt; color:#0F6E62; margin:16pt 0 6pt 0; border-bottom:1px solid #c8dcd8; padding-bottom:3pt; }
+  h3 { font-size:11.5pt; color:#16211F; margin:11pt 0 3pt 0; }
+  p { margin:0 0 6pt 0; text-align:justify; }
+  ul,ol { margin:0 0 7pt 16pt; }
+  li { margin-bottom:2.5pt; }
+  table { border-collapse:collapse; width:100%; font-size:8.8pt; margin:6pt 0 9pt 0; }
+  th,td { border:1px solid #9ab3ae; padding:3.5px 5px; vertical-align:top; }
+  th { background:#E4F0ED; text-align:left; }
+  pre { font-family:Consolas,monospace; font-size:8pt; background:#F4F7F6;
+        border:1px solid #D7E2DF; padding:6pt; white-space:pre-wrap; margin:5pt 0 9pt 0; }
+  code { font-family:Consolas,monospace; font-size:8.8pt; background:#F4F7F6; padding:0 2px; }
+  .title { text-align:center; margin-top:40pt; }
+  .title h1 { font-size:27pt; margin-bottom:2pt; }
+  .sub { text-align:center; font-size:12.5pt; color:#44546A; margin-bottom:22pt; }
+  .meta { margin:0 auto; width:80%; font-size:10pt; }
+  .meta td { border:none; padding:2.5pt 6pt; }
+  .meta td:first-child { font-weight:bold; width:38%; }
+  .pb { page-break-before:always; }
+  .note { background:#EEF6F4; border-left:3px solid #0F6E62; padding:6pt 9pt; margin:7pt 0; font-size:9.6pt; }
+  .warn { background:#FDECEA; border-left:3px solid #B3261E; padding:6pt 9pt; margin:7pt 0; font-size:9.6pt; }
+  .tip  { background:#FFF8E1; border-left:3px solid #E0A020; padding:6pt 9pt; margin:7pt 0; font-size:9.6pt; }
+</style></head><body>
+
+<div class="title">
+  <h1>User Manual</h1>
+  <div class="sub">Clinic Follow-Up Reminder System</div>
+  <p style="text-align:center;font-size:10.5pt;">
+    PFEBSIT 002 - Integrative Programming and Technologies 2<br>
+    IT Free Elective 2 - First Semester, A.Y. 2026-2027<br>
+    University of La Salette, Inc. - College of Information Technology
+  </p>
+</div>
+
+<table class="meta">
+  <tr><td>Document</td><td>Installation, operation and troubleshooting manual</td></tr>
+  <tr><td>Version</td><td>2.0 - covers Module 13 (reminder workflow) and Module 14 (secure exchange)</td></tr>
+  <tr><td>Target platform</td><td>Windows 11, PowerShell 5.1, Chrome</td></tr>
+  <tr><td>Backend editor</td><td>Visual Studio Code, opened on <code>backend\</code></td></tr>
+  <tr><td>Frontend editor</td><td>Android Studio, opened on the project root</td></tr>
+  <tr><td>Duration, first setup</td><td>About 2 hours 30 minutes</td></tr>
+</table>
+
+<div class="note">
+<b>How to use this manual.</b> Parts 1 to 8 are setup and are done once. Parts 9 to 11 are day-to-day
+operation and testing. Part 12 is a troubleshooting reference indexed by the exact error text, and every
+entry there is a failure encountered while building this system. The appendices are a command reference,
+a file map, and a completion checklist.
+</div>
+
+<h2>Contents</h2>
+<table>
+<tr><th style="width:14%">Part</th><th>Covers</th><th style="width:14%">Time</th></tr>
+<tr><td>0</td><td>What you are building</td><td>5 min</td></tr>
+<tr><td>1</td><td>Install the toolchain</td><td>45 min</td></tr>
+<tr><td>2</td><td>Get the code, check the layout</td><td>5 min</td></tr>
+<tr><td>3</td><td>Database</td><td>10 min</td></tr>
+<tr><td>4</td><td>Backend configuration</td><td>10 min</td></tr>
+<tr><td>5</td><td>Backend in VS Code</td><td>15 min</td></tr>
+<tr><td>6</td><td>Keys and certificates</td><td>10 min</td></tr>
+<tr><td>7</td><td>Frontend in Android Studio</td><td>20 min</td></tr>
+<tr><td>8</td><td>Run the whole system</td><td>5 min</td></tr>
+<tr><td>9</td><td>Using the app</td><td>20 min</td></tr>
+<tr><td>10</td><td>Test suites</td><td>15 min</td></tr>
+<tr><td>11</td><td>Evidence capture</td><td>10 min</td></tr>
+<tr><td>12</td><td>Troubleshooting</td><td>as needed</td></tr>
+<tr><td>A-C</td><td>Command reference, file map, completion checklist</td><td>reference</td></tr>
+</table>
+
+<h2 class="pb">Part 0 - What you are building</h2>
+<p>Two features on one Flutter Web client and one Node backend.</p>
+<table>
+<tr><th style="width:20%">Feature</th><th>What it does</th><th style="width:22%">Trigger</th></tr>
+<tr><td><b>Reminders</b></td><td>queue a due follow-up, deliver a notification, retry on transient failure, escalate to a doctor at the attempt cap</td><td>nurse taps <b>Queue</b></td></tr>
+<tr><td><b>Secure exchange</b></td><td>seal a minimised record with AES-256-GCM, sign it with Ed25519, send over pinned TLS to a partner</td><td>doctor taps <b>Seal and send</b></td></tr>
+</table>
+
+<h3>Components and ports</h3>
+<table>
+<tr><th>Component</th><th style="width:12%">Port</th><th style="width:20%">Started from</th><th>Purpose</th></tr>
+<tr><td>Backend API</td><td>3400</td><td><code>backend</code></td><td>REST endpoints plus the static web build</td></tr>
+<tr><td>Mock gateway</td><td>4699</td><td><code>backend</code></td><td>stand-in notification provider</td></tr>
+<tr><td>Partner receiver</td><td>4443</td><td><code>backend</code></td><td>stand-in partner, HTTPS</td></tr>
+<tr><td>Flutter dev server</td><td>8080</td><td>project root</td><td>development only, for hot reload</td></tr>
+</table>
+<p><b>Stack:</b> Node.js 20+, Express 5, ES modules, MySQL 8.0 or later, Flutter Web with Material 3. MySQL through XAMPP is assumed in Part 3.</p>
+
+<h2 class="pb">Part 1 - Install the toolchain</h2>
+
+<h3>1.1 Node.js 20 or later</h3>
+<p>Download the LTS Windows installer from nodejs.org and accept the defaults.</p>
+<pre>
+node --version
+npm --version
+</pre>
+<p>Required: <code>v20.x</code> or later, and <code>10.x</code> or later.</p>
+
+<h3>1.2 Flutter SDK</h3>
+<p>Download the Windows zip from docs.flutter.dev and extract it to a short path with no spaces, for example <code>C:\develop\flutter</code>. Add <code>C:\develop\flutter\bin</code> to the system <b>Path</b>.</p>
+<pre>
+flutter --version
+flutter config --enable-web
+flutter devices
+</pre>
+<p>Required: a version line, then <code>Chrome</code> in the device list. Web support is enabled once and persists.</p>
+
+<h3>1.3 Git for Windows</h3>
+<p>Install from git-scm.com. This also supplies OpenSSL, which Part 6 requires.</p>
+<pre>
+git --version
+Test-Path "C:\Program Files\Git\usr\bin\openssl.exe"
+</pre>
+<p>Required: a version line, then <code>True</code>.</p>
+
+<h3>1.4 XAMPP for MySQL</h3>
+<p>Install from apachefriends.org. Only the MySQL component is needed. Start it from the XAMPP Control Panel.</p>
+<pre>
+Test-Path "C:\xampp\mysql\bin\mysql.exe"
+&amp; "C:\xampp\mysql\bin\mysql.exe" --version
+</pre>
+<p>Required: <code>True</code>, then a version line. MySQL 8.0 or MariaDB 10.6 or later is assumed; the difference affects one paragraph in the report, not the running system.</p>
+
+<h3>1.5 VS Code, for the backend</h3>
+<p>Install from code.visualstudio.com, then add these extensions:</p>
+<table>
+<tr><th style="width:26%">Extension</th><th>Why</th></tr>
+<tr><td>ESLint</td><td>catches unused imports and redeclarations before you run anything</td></tr>
+<tr><td>Error Lens</td><td>shows the error inline instead of in a panel</td></tr>
+<tr><td>MySQL (cweijan)</td><td>browse tables without a second tool</td></tr>
+<tr><td>Powershell</td><td>syntax highlighting in the helper scripts</td></tr>
+</table>
+
+<h3>1.6 Android Studio, for the frontend</h3>
+<p>Install from developer.android.com, then add the Flutter and Dart plugins:</p>
+<p><b>File - Settings - Plugins - Marketplace</b>, search <code>Flutter</code>, Install, restart. Accept the Dart plugin prompt.</p>
+<p>Point Android Studio at the SDK: <b>File - Settings - Languages &amp; Frameworks - Flutter</b>, set the Flutter SDK path to <code>C:\develop\flutter</code>, Apply.</p>
+<pre>
+flutter doctor
+</pre>
+<p>Flutter, Dart and Chrome should be ticked. Android toolchain warnings are irrelevant for a web build.</p>
+
+<h3>1.7 Chrome</h3>
+<p>Any current version. The application targets Chrome for web.</p>
+
+<h3>1.8 Set the PowerShell execution policy</h3>
+<pre>
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+</pre>
+<p>Answer <code>Y</code>. Without this, the helper scripts in Part 11 will not run.</p>
+
+<div class="note">
+<b>Checkpoint 1.</b> All five of these must resolve before continuing:
+<pre>
+foreach ($c in 'node','npm','flutter','git') {
+  "{0,-10} {1}" -f $c, (&amp; $c --version 2&gt;&amp;1 | Select-Object -First 1)
+}
+Test-Path "C:\xampp\mysql\bin\mysql.exe"
+Test-Path "C:\Program Files\Git\usr\bin\openssl.exe"
+</pre>
+</div>
+
+<h2 class="pb">Part 2 - Get the code, check the layout</h2>
+
+<h3>2.1 Clone or unpack</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects"
+git clone https://github.com/benedict003/clinic-follow-up-reminder-system.git clinic_follow_up_reminder_system
+cd clinic_follow_up_reminder_system
+</pre>
+
+<h3>2.2 Two IDEs, one folder</h3>
+<p>Do not copy the project. Both editors open the same tree, at different levels.</p>
+<table>
+<tr><th style="width:20%">Editor</th><th>Opens</th><th style="width:26%">Its terminal starts in</th></tr>
+<tr><td>VS Code</td><td><code>...\clinic_follow_up_reminder_system\backend</code></td><td><code>backend</code></td></tr>
+<tr><td>Android Studio</td><td><code>...\clinic_follow_up_reminder_system</code></td><td>project root</td></tr>
+</table>
+<p>VS Code opens the backend subfolder so its explorer shows only server code. Android Studio opens the root so it can see <code>pubspec.yaml</code>. This split is not cosmetic: every backend command assumes <code>backend</code> as the working directory, and every Flutter command assumes the root.</p>
+
+<h3>2.3 Verify the tree</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system"
+
+foreach ($f in @(
+  'pubspec.yaml',
+  'backend\server.js','backend\routes.js','backend\service.js','backend\worker.js',
+  'backend\auth.js','backend\db.js','backend\config.js','backend\schema.sql',
+  'backend\.env.example',
+  'lib\main.dart','lib\api\clinic_api.dart','lib\api\reminder_api.dart',
+  'lib\screens\login_screen.dart','lib\screens\home_shell.dart',
+  'lib\screens\reminders_screen.dart','lib\widgets\ui.dart'
+)) {
+  "{0,-42} {1}" -f $f, $(if (Test-Path $f) { 'ok' } else { 'MISSING' })
+}
+</pre>
+<p>Any <code>MISSING</code> is part of the baseline and must be resolved first.</p>
+<p><b>Checkpoint 2:</b> every line reads <code>ok</code>.</p>
+
+<h2 class="pb">Part 3 - Database</h2>
+
+<h3>3.1 Start MySQL</h3>
+<p>XAMPP Control Panel, MySQL, Start. Confirm it listens:</p>
+<pre>
+Get-NetTCPConnection -LocalPort 3306 -State Listen -ErrorAction SilentlyContinue |
+  Select-Object LocalPort, OwningProcess
+</pre>
+<p>Required: one row.</p>
+
+<h3>3.2 Create the database and load the baseline schema</h3>
+<pre>
+$mysql = "C:\xampp\mysql\bin\mysql.exe"
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+
+&amp; $mysql -u root -e "CREATE DATABASE IF NOT EXISTS clinic_followup_lab CHARACTER SET utf8mb4;"
+
+# PowerShell has no input redirection - hand the file to cmd
+cmd /c "C:\xampp\mysql\bin\mysql.exe -u root clinic_followup_lab &lt; schema.sql"
+</pre>
+<p>XAMPP's <code>root</code> normally has an empty password. If yours does not, use <code>-proot</code> with no space, or <code>-p</code> and type it. A clean import prints nothing; that is success.</p>
+<pre>
+&amp; $mysql -u root -e "SHOW TABLES;" clinic_followup_lab
+</pre>
+<p>Required: seven tables - <code>follow_ups</code>, <code>patients</code>, <code>reminder_alerts</code>, <code>reminder_attempts</code>, <code>reminder_jobs</code>, <code>sessions</code>, <code>users</code>.</p>
+
+<h3>3.3 Record the engine version</h3>
+<pre>
+&amp; $mysql -u root -e "SELECT VERSION() AS v, @@version_comment AS flavour;"
+</pre>
+<p>Note the output. MySQL Community Server and MariaDB differ on <code>SKIP LOCKED</code> support, which is quoted in the accompanying report.</p>
+
+<h3>3.4 Module 14 tables</h3>
+<p>Only if you are using secure exchange:</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+cmd /c "C:\xampp\mysql\bin\mysql.exe -u root clinic_followup_lab &lt; schema-14.sql"
+node --env-file=.env scripts\lab-sql.js "SHOW TABLES LIKE 'secure_%'"
+</pre>
+<p>Required: <code>secure_inbox</code> and <code>secure_outbox</code>. Then confirm the replay constraint exists, because case T2 depends on it:</p>
+<pre>
+node --env-file=.env scripts\lab-sql.js "SHOW CREATE TABLE secure_inbox" | Select-String 'uq_inbox_message'
+</pre>
+<p>Required: one match. If nothing prints, the table predates the constraint:</p>
+<pre>
+&amp; $mysql -u root -e "DROP TABLE IF EXISTS secure_outbox, secure_inbox;" clinic_followup_lab
+cmd /c "C:\xampp\mysql\bin\mysql.exe -u root clinic_followup_lab &lt; schema-14.sql"
+</pre>
+<p><b>Checkpoint 3:</b> seven baseline tables, plus two <code>secure_*</code> tables if using exchange.</p>
+
+<h2 class="pb">Part 4 - Backend configuration</h2>
+
+<h3>4.1 Create the environment file</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+</pre>
+
+<h3>4.2 Generate a session secret</h3>
+<pre>
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+</pre>
+<p>Copy the 64-character output.</p>
+
+<h3>4.3 Fill in .env</h3>
+<p>Open <code>backend\.env</code> in VS Code and set at minimum:</p>
+<pre>
+PORT=3400
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=clinic_followup_lab
+
+SESSION_SECRET=&lt;paste the 64 hex characters&gt;
+
+INTEGRATION_ENDPOINT=http://127.0.0.1:4699/notify
+INTEGRATION_MAX_ATTEMPTS=4
+INTEGRATION_BACKOFF_MS=500
+INTEGRATION_MAX_BACKOFF_MS=4000
+INTEGRATION_TIMEOUT_MS=3000
+INTEGRATION_POLL_MS=2000
+INTEGRATION_STUCK_MS=60000
+
+DEV_CORS=false
+</pre>
+<p>Module 14 additions. Values are <b>paths only</b>, never key material:</p>
+<pre>
+SECURE_KEY_DIR=keys
+
+SECURE_SENDER_PRIVATE_KEY=keys/sender-private.pem
+SECURE_SENDER_PUBLIC_KEY=keys/sender-public.pem
+SECURE_RECIPIENT_PUBLIC_KEY=keys/recipient-public.pem
+SECURE_RECIPIENT_PRIVATE_KEY=keys/recipient-private.pem
+SECURE_REF_KEY_FILE=keys/ref.key
+
+SECURE_REF_KEY_ID=ref-2026-01
+SECURE_KEY_ID=clinic-2026-q4
+SECURE_SENDER_NAME=clinic-api
+SECURE_RECIPIENT_NAME=records-office
+
+SECURE_PARTNER_URL=https://localhost:4443/receive
+SECURE_PARTNER_CA=tls/partner.pem
+SECURE_PARTNER_CERT=tls/partner.pem
+SECURE_PARTNER_CERT_KEY=tls/partner-key.pem
+SECURE_PARTNER_PORT=4443
+SECURE_TTL_MS=300000
+</pre>
+<div class="warn">
+<b>Critical.</b> Every path above is relative to the <b>working directory</b>, which is always
+<code>backend</code>. A path in <code>.env</code> does not mean "relative to the .env file". This is why
+<code>keys\</code> and <code>tls\</code> live inside <code>backend</code> and not at the project root.
+Generating them at the root produces <code>ENOENT ... backend\tls\partner.pem</code> much later, at the
+receiver's start line.
+</div>
+
+<h3>4.4 Confirm .env is ignored</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+git check-ignore -v .env
+</pre>
+<p>Required: a match line. If it prints nothing:</p>
+<pre>
+Add-Content ..\.gitignore "`nbackend/.env`nbackend/.env.receiver`nbackend/keys/`nbackend/tls/`n*.pem`n*.key"
+</pre>
+
+<div class="note">
+<b>Checkpoint 4.</b>
+<pre>
+"SESSION_SECRET set: " + [bool](Select-String -Path .env -Pattern '^SESSION_SECRET=.{32,}' -Quiet)
+"SECURE_ lines    : " + (Get-Content .env | Select-String '^SECURE_' | Measure-Object).Count
+"no inline key    : " + (-not (Select-String -Path .env -Pattern 'BEGIN.*PRIVATE KEY' -Quiet))
+</pre>
+Required: <code>True</code>, fourteen or more, <code>True</code>.
+</div>
+
+<h2 class="pb">Part 5 - Backend in VS Code</h2>
+
+<h3>5.1 Open the folder</h3>
+<p>VS Code, <b>File - Open Folder</b>, <code>C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend</code>. The explorer should show <code>server.js</code>, <code>routes.js</code>, <code>service.js</code>, <code>worker.js</code>, <code>crypto\</code>, <code>secure\</code>, <code>scripts\</code>.</p>
+
+<h3>5.2 Install dependencies</h3>
+<p>Open the integrated terminal with <b>Ctrl + `</b>.</p>
+<pre>
+Get-Location
+npm install
+</pre>
+<p>Required: the location ends in <code>\backend</code>, and npm reports added packages without <code>ERR</code>.</p>
+
+<h3>5.3 Create the test users and patients</h3>
+<pre>
+$env:LAB_PASSWORD = "&lt;choose a password, 12 or more characters&gt;"
+npm run seed
+</pre>
+<table>
+<tr><th style="width:22%">User</th><th>Role</th></tr>
+<tr><td><code>nurse1</code></td><td>queue and view</td></tr>
+<tr><td><code>doctor1</code></td><td>queue, view, retry, acknowledge, disclose</td></tr>
+</table>
+<p>Patients are fictional: <code>2026-00001</code>, <code>2026-00002</code>, <code>E-0001</code>.</p>
+<div class="tip">
+<b>The seed script does not create follow-ups.</b> Every later step needs them, and their absence is the
+most common first failure: the first queue attempt returns a 404 that looks like a routing bug.
+</div>
+
+<h3>5.4 Create follow-ups</h3>
+<pre>
+function SQL([string]$q) { node --env-file=.env scripts/lab-sql.js $q }
+
+SQL "DELETE FROM follow_ups"
+
+function New-FollowUp([string]$patientId, [string]$due, [string]$reason) {
+  SQL "INSERT INTO follow_ups (patient_id,due_date,reason,created_by,created_at)
+       VALUES ('$patientId','$due','$reason',1,'2026-01-01T00:00:00.000Z')" | Out-Null
+  $r = SQL "SELECT MAX(id) AS id FROM follow_ups" | ConvertFrom-Json
+  return [int](@($r))[0].id
+}
+
+$today  = Get-Date -Format 'yyyy-MM-dd'
+$future = (Get-Date).AddDays(7).ToString('yyyy-MM-dd')
+"server today: $today   future: $future"
+
+$m = @{}
+$m.Demo   = New-FollowUp '2026-00001' $today  'demo success path'
+$m.Flaky  = New-FollowUp '2026-00002' $today  'demo flaky recovery'
+$m.Rej    = New-FollowUp 'E-0001'     $today  'demo permanent reject'
+$m.Down   = New-FollowUp '2026-00001' $today  'demo bounded outage'
+$m.Slow   = New-FollowUp '2026-00002' $today  'demo timeout'
+$m.Stale  = New-FollowUp 'E-0001'     $today  'demo obsolete race'
+$m.Vers   = New-FollowUp '2026-00001' $today  'demo version key'
+$m.Future = New-FollowUp '2026-00002' $future 'demo future dated'
+
+New-Item -ItemType Directory -Force -Path ..\docs\lab\module13\evidence | Out-Null
+$m | ConvertTo-Json | Set-Content ..\docs\lab\module13\evidence\follow-up-ids.json
+$m
+</pre>
+<p>Required: eight ids, seven due today and one a week out.</p>
+<pre>
+SQL "SELECT id,status,due_date,version,(due_date &lt;= CURDATE()) AS is_due FROM follow_ups ORDER BY id"
+</pre>
+<table>
+<tr><th style="width:24%">Check</th><th>Required</th></tr>
+<tr><td>row count</td><td>8</td></tr>
+<tr><td>due_date format</td><td><code>2026-11-01</code>, not <code>2026-10-31T16:00:00.000Z</code></td></tr>
+<tr><td>is_due</td><td>seven <code>1</code>, one <code>0</code></td></tr>
+</table>
+<p>If the ISO form appears, <code>dateStrings</code> is not applied to the connection pool. Every follow-up would then appear future-dated and every queue attempt would return 409.</p>
+
+<h3>5.5 Keep the ids visible</h3>
+<pre>
+Get-Content ..\docs\lab\module13\evidence\follow-up-ids.json
+</pre>
+<p>Keep that file in a VS Code tab. You type those numbers into the application in Part 9.</p>
+
+<div class="note">
+<b>Checkpoint 5.</b> Both modules must import cleanly:
+<pre>
+node --env-file=.env -e "import('./service.js').then(m =&gt; console.log('service ok:', Object.keys(m).length, 'exports')).catch(e =&gt; { console.error('FAIL:', e.message); process.exit(1); })"
+node --env-file=.env -e "import('./worker.js').then(m =&gt; console.log('worker ok:', Object.keys(m).length, 'exports')).catch(e =&gt; { console.error('FAIL:', e.message); process.exit(1); })"
+</pre>
+A <code>MODULE_NOT_FOUND</code> or <code>ReferenceError</code> here means a file is broken at import time and
+no request will work, so fix it before starting the server.
+</div>
+
+<h2 class="pb">Part 6 - Keys and certificates</h2>
+<p>Skip this part if you are not using secure exchange.</p>
+
+<h3>6.1 Generate two certificates into backend\tls</h3>
+<p>Two, not one. The sender must <b>trust</b> <code>partner.pem</code> and <b>reject</b> <code>clinic-local.pem</code>, which is what case T11 demonstrates.</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+$openssl = "C:\Program Files\Git\usr\bin\openssl.exe"
+New-Item -ItemType Directory -Force -Path tls | Out-Null
+
+&amp; $openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes `
+  -keyout tls\partner-key.pem -out tls\partner.pem `
+  -subj "/CN=localhost" `
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2&gt;&amp;1 | Select-Object -Last 1
+
+&amp; $openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes `
+  -keyout tls\clinic-local-key.pem -out tls\clinic-local.pem `
+  -subj "/CN=localhost" `
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2&gt;&amp;1 | Select-Object -Last 1
+
+Get-ChildItem tls | Select-Object Name, Length
+</pre>
+<p><code>-addext subjectAltName</code> is mandatory. Without it the certificate loads fine and TLS fails on hostname validation much later, which is a harder error to trace than a missing file.</p>
+
+<h3>6.2 Generate the key pairs</h3>
+<pre>
+node --env-file=.env scripts\secure-keys.js
+Get-ChildItem keys | Select-Object Name, Length
+</pre>
+<p>Required: five files - <code>sender-private.pem</code>, <code>sender-public.pem</code>, <code>recipient-private.pem</code>, <code>recipient-public.pem</code>, <code>ref.key</code>.</p>
+<p>If the script reports that material already exists, it was generated before. Do not pass <code>--force</code> unless you intend a rotation, which makes every previously sealed envelope unreadable.</p>
+
+<div class="note">
+<b>Checkpoint 6.</b>
+<pre>
+$openssl = "C:\Program Files\Git\usr\bin\openssl.exe"
+
+$san = (&amp; $openssl x509 -in tls\partner.pem -noout -ext subjectAltName) -join ' '
+"SAN present : " + ($san -match 'DNS:localhost')
+
+$cm = ((&amp; $openssl x509 -in tls\partner.pem -noout -modulus) -join '')
+$km = ((&amp; $openssl rsa  -in tls\partner-key.pem -noout -modulus 2&gt;$null) -join '')
+"cert/key    : " + ($cm -eq $km -and $cm)
+
+"key material tracked : " + (git ls-files | Select-String '\.pem$|\.key$|/keys/' | Measure-Object).Count
+</pre>
+Required: <code>True</code>, <code>True</code>, <code>0</code>.
+</div>
+
+<h2 class="pb">Part 7 - Frontend in Android Studio</h2>
+
+<h3>7.1 Open the project</h3>
+<p>Android Studio, <b>File - Open</b>, <code>C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system</code>, <b>Open</b>. Trust the project when asked.</p>
+
+<h3>7.2 Switch to Project view</h3>
+<p>Android Studio defaults to the <b>Android</b> view, which hides <code>backend\</code> and most of <code>lib\</code>. Use the dropdown at the top of the left tool window and select <b>Project</b>.</p>
+<pre>
+clinic_follow_up_reminder_system
+  lib
+  backend
+  docs
+  pubspec.yaml
+</pre>
+
+<h3>7.3 Fetch packages</h3>
+<p>Open the terminal tool window with <b>Alt + F12</b>.</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system"
+flutter pub get
+</pre>
+<p>Required: <code>Got dependencies!</code></p>
+
+<h3>7.4 Analyze</h3>
+<pre>
+flutter analyze *&gt;&amp;1 | Tee-Object -FilePath docs\lab\module14\evidence\flutter-analyze-14.txt
+</pre>
+<p>Required: <b><code>No issues found!</code></b></p>
+<div class="warn">
+Use <code>*&gt;&amp;1</code>, not <code>2&gt;&amp;1</code>. The star merges every stream into plain strings.
+With <code>2&gt;&amp;1</code>, PowerShell wraps any stderr line as an error record, and the evidence file then
+records a <code>NativeCommandError</code> for a build that succeeded.
+</div>
+<p>When errors do appear they are almost always one of these:</p>
+<table>
+<tr><th style="width:44%">Message</th><th>Fix</th></tr>
+<tr><td><code>new_with_undefined_constructor_default</code> on <code>ClinicApi()</code></td><td>the client is a singleton: use <code>ClinicApi.instance</code> and never construct one</td></tr>
+<tr><td><code>final_not_initialized_constructor</code></td><td>a <code>final ClinicApi api;</code> field survived a constructor edit - delete the field and the parameter</td></tr>
+<tr><td><code>undefined_identifier: ctx</code></td><td>the dialog builder needs a block body with a named parameter</td></tr>
+<tr><td><code>argument_type_not_assignable</code> on <code>appBar</code></td><td><code>ui.dart</code> defines <code>appBar(String title, {actions, bottom})</code> - one positional argument only</td></tr>
+</table>
+
+<h3>7.5 Run in development, optionally</h3>
+<p>For hot reload while editing. This requires relaxing CORS, so skip it if you only need the delivered build.</p>
+<pre>
+# 1. set DEV_CORS=true in backend\.env, then restart the backend
+# 2. in Android Studio's terminal:
+flutter run -d chrome --web-port=8080
+</pre>
+<p>Open <code>http://localhost:8080</code>. Debug builds show a banner and retain runtime type checks. <b>Submitted screenshots must come from the release build in 7.6</b>, not from here.</p>
+
+<h3>7.6 Build for release</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system"
+
+flutter build web --release --no-wasm-dry-run *&gt;&amp;1 |
+  Tee-Object -FilePath docs\lab\module14\evidence\flutter-build-14.txt
+</pre>
+<p>Required: output ending with <code>Built build\web</code>. The flag <code>--no-wasm-dry-run</code> removes an advisory that otherwise lands in the log and reads like a failure.</p>
+<pre>
+$log = "docs\lab\module14\evidence\flutter-build-14.txt"
+"Built build\web   : " + [bool](Select-String -Path $log -Pattern 'Built build\\web' -Quiet)
+"Error: lines      : " + (Select-String -Path $log -Pattern '\bError:' | Measure-Object).Count
+"NativeCommandError: " + (Select-String -Path $log -Pattern 'NativeCommandError' | Measure-Object).Count
+</pre>
+<p>Required: <code>True</code>, <code>0</code>, <code>0</code>.</p>
+<pre>
+$js = "build\web\main.dart.js"
+"keyinfo endpoint : " + [bool](Select-String -Path $js -Pattern '/api/secure/keyinfo' -SimpleMatch -Quiet)
+"send endpoint    : " + [bool](Select-String -Path $js -Pattern '/api/secure/send' -SimpleMatch -Quiet)
+</pre>
+<p>That pair is the only check proving the compiled bundle contains Module 14, rather than merely that the source file exists.</p>
+
+<h3>7.7 Deploy by replacing, not merging</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system"
+$dest = "backend\public\app"
+
+Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item -Recurse -Force build\web\* $dest
+
+"build\web files : " + (Get-ChildItem build\web -Recurse -File | Measure-Object).Count
+"served files    : " + (Get-ChildItem $dest -Recurse -File | Measure-Object).Count
+"hashes match    : " + (
+  (Get-FileHash build\web\main.dart.js).Hash -eq (Get-FileHash "$dest\main.dart.js").Hash
+)
+</pre>
+<p><code>Copy-Item -Force</code> overwrites files that exist and <b>leaves files that no longer belong</b>. Replacing the folder avoids serving a stale service worker or a dead asset. Required: equal counts, and <code>hashes match: True</code>.</p>
+<p><b>Checkpoint 7:</b> analyze clean, build log clean, served hashes identical.</p>
+
+<h2 class="pb">Part 8 - Run the whole system</h2>
+<p>Up to four terminals. Each starts with an explicit <code>cd</code>; never rely on a function defined in a previous session, because functions do not survive a new tab.</p>
+
+<h3>8.1 Terminal 1 - mock gateway</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+node scripts\mock-gateway.js *&gt;&amp;1 |
+  Tee-Object -FilePath "..\docs\lab\module13\evidence\mock-gateway-$stamp.log"
+</pre>
+<p>Required: <code>mock gateway on http://127.0.0.1:4699/notify (mode=ok)</code></p>
+
+<h3>8.2 Terminal 2 - partner receiver</h3>
+<p>Module 14 only.</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+node --env-file=.env scripts\partner-receiver.js *&gt;&amp;1 |
+  Tee-Object -FilePath "..\docs\lab\module14\evidence\partner-$stamp.log"
+</pre>
+<p>Required: <code>"src":"partner","event":"partner.started","port":4443</code></p>
+
+<h3>8.3 Terminal 3 - backend API</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+npm start *&gt;&amp;1 |
+  Tee-Object -FilePath "..\docs\lab\module14\evidence\backend-14-$stamp.log"
+</pre>
+<p>Required, both lines:</p>
+<pre>
+listening on 127.0.0.1:3400
+{"src":"worker","event":"worker.started","pollMs":2000,"maxAttempts":4,"timeoutMs":3000}
+</pre>
+<p>Plus <code>"event":"secure.routes.mounted"</code> if secure exchange is wired. A missing <code>worker.started</code> means nothing polls, and every reminder case will sit at <code>0/4</code>.</p>
+<div class="tip">
+The stamp includes <b>seconds</b>. A minute-only stamp makes two starts within the same minute collide, and
+<code>Tee-Object</code> then fails with "used by another process" <i>before</i> the process starts - a lock
+error where you expected a test result.
+</div>
+
+<h3>8.4 Terminal 4 - health checks</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+
+foreach ($p in 3400, 4443, 4699) {
+  $c = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue
+  "{0}: {1}" -f $p, $(if ($c) { "listening (pid $($c[0].OwningProcess))" } else { 'FREE' })
+}
+
+curl.exe -s -o $null -w "  api     %{http_code}`n" http://localhost:3400/api/health
+curl.exe -s -o $null -w "  gateway %{http_code}`n" http://127.0.0.1:4699/_/state
+curl.exe --cacert tls\partner.pem -s -o $null -w "  partner %{http_code}`n" https://localhost:4443/health
+
+$log = Get-ChildItem ..\docs\lab\module14\evidence\backend-14-*.log |
+       Sort-Object LastWriteTime -Descending | Select-Object -First 1
+"  worker.error count: " + (Select-String -Path $log.FullName -Pattern 'worker.error' | Measure-Object).Count
+</pre>
+<p>Required: three <code>listening</code>, three <code>200</code>, and <code>worker.error count: 0</code>.</p>
+<p><b>Checkpoint 8:</b> all terminals running, all endpoints answering, zero worker errors.</p>
+
+<h2 class="pb">Part 9 - Using the app</h2>
+<p>Open <code>http://localhost:3400/app/</code> in Chrome and hard reload once with <b>Ctrl + Shift + R</b>.</p>
+
+<h3>9.1 Sign in</h3>
+<p>Nurse: <code>nurse1</code> and your <code>LAB_PASSWORD</code>. Doctor: <code>doctor1</code> and the same password.</p>
+
+<h3>9.2 Nurse - queue a reminder</h3>
+<ol>
+<li>Left navigation, <b>Reminders</b></li>
+<li>Tap <b>+</b> at the bottom right</li>
+<li>Enter a follow-up id that is due today</li>
+<li>Tap <b>Queue</b></li>
+</ol>
+<p>Within two seconds the row becomes a green <b>succeeded</b> with <b>1/4</b> attempts. That is the entire success path.</p>
+<table>
+<tr><th style="width:46%">What you might see</th><th>Meaning</th></tr>
+<tr><td><code>Reminder queued.</code> then <code>succeeded</code></td><td>working</td></tr>
+<tr><td>Dialog says <i>not due until ...</i></td><td>that follow-up is future-dated</td></tr>
+<tr><td><i>Only scheduled follow-ups can be queued</i></td><td>already reminded, or closed</td></tr>
+<tr><td>Row stays at <code>0/4</code></td><td>the worker is not claiming - see Part 12</td></tr>
+<tr><td><i>Cannot reach http://localhost:3400</i></td><td>the backend stopped</td></tr>
+</table>
+
+<h3>9.3 Nurse - inspect the job</h3>
+<p>Tap the row. The detail screen shows state, correlation id, and the attempt timeline with each outcome, HTTP status and duration.</p>
+
+<h3>9.4 Doctor - resolve a job that needs a human</h3>
+<ol>
+<li>Open a job in <code>needs_human</code></li>
+<li>Tap <b>Retry</b> and type a reason, or <b>Acknowledge</b> the alert</li>
+<li>A nurse attempting the same action sees a doctor-only notice in the interface and receives <code>403</code> from the API</li>
+</ol>
+<div class="note">
+The interface hides the control, but hiding a button is not a control. The API refusal, and the absence of
+an attempt row afterwards, is the actual evidence.
+</div>
+
+<h3>9.5 Doctor - disclose a record</h3>
+<ol>
+<li><b>More</b>, then <b>Secure exchange</b></li>
+<li>Type a follow-up id</li>
+<li><b>Preview</b> - shows the four fields that will leave and the five that will not</li>
+<li><b>Seal and send</b>, then confirm</li>
+</ol>
+<p>On success the result card reads:</p>
+<pre>
+Delivered
+messageId 3f9c1e88-...
+AES-256-GCM / Ed25519 / RSA-OAEP-256
+74 B plaintext -&gt; 74 B ciphertext
+sha256 8c2f...
+receipt 2026-11-01T..:..:..Z - 74 B
+</pre>
+<p>The <b>Keys in this process</b> card should show <code>recipientDecrypt: not present</code>. That line is the separation of duties made visible in the interface.</p>
+<p>Verify on both sides:</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+node --env-file=.env scripts\lab-sql.js "SELECT message_id,status,http_status,plaintext_bytes,ciphertext_bytes FROM secure_outbox ORDER BY id DESC LIMIT 3"
+node --env-file=.env scripts\lab-sql.js "SELECT message_id,sender,key_id,payload_sha256 FROM secure_inbox ORDER BY id DESC LIMIT 3"
+</pre>
+<p>Matching <code>payload_sha256</code> on both rows is the strongest confirmation available outside the test suite.</p>
+<p><b>Checkpoint 9:</b> a succeeded reminder row, and a delivered envelope with matching digests.</p>
+
+<h2 class="pb">Part 10 - Test suites</h2>
+
+<h3>10.1 Reminder workflow, fourteen cases</h3>
+<p>The procedure is in <code>docs\lab\module13\13-lab-log.md</code>, section 4. Set the gateway mode before each case.</p>
+<div class="warn">
+Always verify a mode change before queueing. A malformed control body silently falls back to <code>ok</code>,
+and a test that injected no failure still produces a green screenshot - the worst kind of evidence.
+</div>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+
+function Set-ModeVerified([string]$x) {
+  @{ mode = $x } | ConvertTo-Json -Compress | Set-Content -NoNewline .mode.json
+  $raw = curl.exe -s -X POST "http://127.0.0.1:4699/_/mode" -H "Content-Type: application/json" --data-binary "@.mode.json"
+  $applied = ($raw | ConvertFrom-Json).mode
+  if ($applied -ne $x) { throw "mode not applied: asked '$x', gateway reports '$applied'" }
+  $st = curl.exe -s "http://127.0.0.1:4699/_/state" | ConvertFrom-Json
+  "mode = $($st.mode)   calls so far = $($st.calls)"
+}
+
+Set-ModeVerified 'flaky'
+</pre>
+<table>
+<tr><th style="width:16%">Mode</th><th>Behaviour</th><th style="width:18%">Case</th></tr>
+<tr><td><code>ok</code></td><td>200 immediately</td><td>S4, S5</td></tr>
+<tr><td><code>flaky</code></td><td>503 twice, then 200</td><td>S6</td></tr>
+<tr><td><code>reject</code></td><td>422 permanent rejection</td><td>S7</td></tr>
+<tr><td><code>down</code></td><td>destroys the socket</td><td>S9</td></tr>
+<tr><td><code>slow</code></td><td>sleeps 10 s, exceeding the 3 s timeout</td><td>S11</td></tr>
+</table>
+
+<h3>10.2 Secure exchange, twelve cases</h3>
+<p>The receiver must be running.</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+
+node --env-file=.env scripts\secure-tests.js *&gt;&amp;1 |
+  Tee-Object -FilePath ..\docs\lab\module14\evidence\secure-tests.log
+</pre>
+<p>Required: <b><code>12 of 12 cases passed.</code></b> and exit code 0.</p>
+<p>A JSON version is written beside the log, which is what the accompanying report fills from:</p>
+<pre>
+Get-Content ..\docs\lab\module14\evidence\secure-tests.json -Raw | ConvertFrom-Json |
+  Select-Object id, expected, observed, pass | Format-Table -AutoSize
+</pre>
+<p><b>Checkpoint 10:</b> twelve of twelve, and the JSON contains twelve objects.</p>
+
+<h2 class="pb">Part 11 - Evidence capture</h2>
+<p>After each test action, snapshot the three things a reviewer can re-check:</p>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+function SQL([string]$q) { node --env-file=.env scripts/lab-sql.js $q }
+
+function Capture([string]$tag) {
+  $ev = "..\docs\lab\module13\evidence"
+  New-Item -ItemType Directory -Force -Path $ev | Out-Null
+  SQL "SELECT id,follow_up_id,status,attempts,max_attempts,error_code,correlation_id FROM reminder_jobs ORDER BY id" |
+    Set-Content "$ev\$tag-jobs.json"
+  SQL "SELECT job_id,attempt_no,outcome,http_status,error_code,duration_ms,created_at FROM reminder_attempts ORDER BY id" |
+    Set-Content "$ev\$tag-attempts.json"
+  (curl.exe -s "http://127.0.0.1:4699/_/state") | Set-Content "$ev\$tag-gateway.json"
+  "captured $tag"
+}
+
+Capture 's4'
+</pre>
+
+<h3>11.1 Log hygiene, before submitting</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system"
+$logs = Get-ChildItem docs\lab\module1*\evidence\*.log
+$pattern = 'Fictional Student|Fictional Employee|patient_name|lab-password|cfr_session|csrfToken|BEGIN.*PRIVATE KEY'
+$hits = $logs | Select-String -Pattern $pattern
+if ($hits) { $hits | Select-Object -First 10 } else { "clean - 0 matches across $($logs.Count) file(s)" }
+</pre>
+<p>Required: <code>clean</code>.</p>
+
+<h3>11.2 Nothing readable is stored</h3>
+<pre>
+cd backend
+node --env-file=.env scripts\lab-sql.js "SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name LIKE 'secure_%' AND column_name REGEXP 'payload$|plaintext$|ciphertext$|body$'"
+</pre>
+<p>Required: an empty set. This is the check that proves the tables hold metadata only.</p>
+
+<h2 class="pb">Part 12 - Troubleshooting</h2>
+<p>Every entry is a failure encountered while building this system, indexed by the text you actually see.</p>
+
+<h3>12.1 PowerShell</h3>
+<table>
+<tr><th style="width:38%">Symptom</th><th style="width:24%">Cause</th><th>Fix</th></tr>
+<tr><td><code>The '&lt;' operator is reserved for future use</code></td><td>PowerShell 5.1 has no input redirection</td><td><code>cmd /c "mysql.exe -u root db &lt; file.sql"</code> or <code>--execute="source file.sql"</code></td></tr>
+<tr><td><code>A parameter cannot be found that matches parameter name 'Recurse'</code></td><td><code>Select-String</code> has no <code>-Recurse</code></td><td><code>Get-ChildItem lib -Recurse -Filter *.dart | Select-String 'pattern'</code></td></tr>
+<tr><td><code>NativeCommandError</code> in a build log for a successful build</td><td><code>2&gt;&amp;1</code> wraps stderr as an error record</td><td>use <code>*&gt;&amp;1</code></td></tr>
+<tr><td><code>Could not find a part of the path ...\StudioProjects\docs\...</code></td><td>ran from the project root instead of <code>backend</code>, so <code>..\docs</code> walked out of the project</td><td><code>cd backend</code> first</td></tr>
+<tr><td><code>Tee-Object ... being used by another process</code></td><td>log filename stamped to the minute, and the process still holds it</td><td>stamp with <code>yyyyMMdd-HHmmss</code>; stop the stale process</td></tr>
+<tr><td><code>Set-Backend : not recognized</code></td><td>a function defined in a previous session</td><td>absolute <code>cd</code> in each terminal, or add it to <code>$PROFILE</code></td></tr>
+<tr><td><code>execution of scripts is disabled</code></td><td>execution policy</td><td><code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code></td></tr>
+</table>
+
+<h3>12.2 Database</h3>
+<table>
+<tr><th style="width:38%">Symptom</th><th style="width:24%">Cause</th><th>Fix</th></tr>
+<tr><td><code>mysql: command not found</code></td><td>XAMPP not on PATH</td><td>call the full path <code>C:\xampp\mysql\bin\mysql.exe</code></td></tr>
+<tr><td><code>Access denied for user 'root'</code></td><td>password is not empty on this install</td><td><code>-proot</code>, or <code>-p</code> and type it</td></tr>
+<tr><td><code>Table 'secure_inbox' doesn't exist</code></td><td><code>schema-14.sql</code> not applied</td><td><code>cmd /c "... &lt; schema-14.sql"</code></td></tr>
+<tr><td>T2 returns 200 instead of 409</td><td>table exists without the unique key</td><td>drop both <code>secure_*</code> tables and re-import</td></tr>
+<tr><td><code>due_date</code> prints as <code>2026-10-31T16:00:00.000Z</code></td><td>pool lacks <code>dateStrings</code></td><td>check <code>db.js</code>; every follow-up otherwise looks future-dated</td></tr>
+<tr><td><code>ER_BAD_FIELD_ERROR: Unknown column 'status'</code> on alerts</td><td><code>reminder_alerts</code> has no status column</td><td>unread is <code>read_at IS NULL</code></td></tr>
+</table>
+
+<h3>12.3 Backend</h3>
+<table>
+<tr><th style="width:38%">Symptom</th><th style="width:24%">Cause</th><th>Fix</th></tr>
+<tr><td><code>ERR_MODULE_NOT_FOUND</code></td><td>a module is missing</td><td>check the file list in Part 2</td></tr>
+<tr><td>Server exits: <i>endpoint must be local</i></td><td><code>INTEGRATION_ENDPOINT</code> is not loopback</td><td>point it at <code>127.0.0.1</code></td></tr>
+<tr><td>Job stuck at <code>0/4</code>, <code>worker.error</code> every 2 s</td><td>the claim statement failed</td><td>read the message; if it names <code>SKIP LOCKED</code>, the engine predates MySQL 8.0 or MariaDB 10.6</td></tr>
+<tr><td>Job stuck at <code>0/4</code>, log silent</td><td>worker not polling, or the wrong database</td><td>confirm <code>worker.started</code>, confirm <code>DB_NAME</code></td></tr>
+<tr><td><code>keyinfo</code> returns <code>API endpoint not found.</code></td><td><code>attachSecureApi(app)</code> registered after the terminal <code>/api</code> 404 handler</td><td>move the call above the catch-all, restart</td></tr>
+<tr><td><code>keyinfo</code> returns <code>Authentication required.</code></td><td>the endpoint is behind the session guard</td><td>log in and send <code>-b doctor.jar</code></td></tr>
+<tr><td><code>403</code> on send as a doctor</td><td>the gate reads the wrong session field</td><td><code>auth.js</code> attaches <code>req.session.user</code>; the gate must read that</td></tr>
+<tr><td><code>PARTNER_UNREACHABLE</code> or <code>SELF_SIGNED_CERT_IN_CHAIN</code></td><td>receiver down, or CA not pinned</td><td>start the receiver; confirm <code>SECURE_PARTNER_CA=tls/partner.pem</code></td></tr>
+<tr><td>Receiver: <code>ENOENT ... backend\tls\partner.pem</code></td><td>certificates generated at the project root</td><td>from <code>backend</code>: <code>Move-Item ..\tls .\tls</code></td></tr>
+</table>
+
+<h3>12.4 Frontend</h3>
+<table>
+<tr><th style="width:38%">Symptom</th><th style="width:24%">Cause</th><th>Fix</th></tr>
+<tr><td><code>new_with_undefined_constructor_default</code></td><td><code>ClinicApi</code> has only a private constructor</td><td>use <code>ClinicApi.instance</code>; never construct</td></tr>
+<tr><td><code>final_not_initialized_constructor</code></td><td>an <code>api</code> field survived a constructor edit</td><td>delete the field and the parameter</td></tr>
+<tr><td><code>undefined_identifier: ctx</code> or <code>Expected to find ')'</code></td><td>arrow-lambda dialog corrupted on paste</td><td>block-bodied <code>builder: (BuildContext dialogContext)</code></td></tr>
+<tr><td><code>argument_type_not_assignable</code> on <code>appBar</code></td><td>wrong signature assumed</td><td><code>appBar('Title')</code> - one positional argument</td></tr>
+<tr><td><code>undefined_getter: api</code> on <code>SettingsScreen</code></td><td>a field was added that the class does not have</td><td>use <code>const SecureExchangeScreen()</code></td></tr>
+<tr><td><code>TypeErrorImpl</code> in <code>RenderViewportBase.hitTestChildren</code></td><td>a pointer reached a viewport mid-layout; observed in <b>debug</b> builds only</td><td>rebuild release; if it persists, add <code>PopScope(canPop: !_busy)</code></td></tr>
+<tr><td>Screen shows an old version after deploy</td><td>service worker cache</td><td><code>Ctrl+Shift+R</code>, then Application - Service Workers - Unregister</td></tr>
+<tr><td><code>403 Invalid CSRF token</code></td><td>a second client instance with its own cookie jar</td><td>confirm exactly one <code>ClinicApi</code> construction site in <code>lib/</code></td></tr>
+</table>
+
+<h3>12.5 Is it running?</h3>
+<pre>
+cd "C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend"
+
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+  Select-Object ProcessId, @{n='Cmd';e={ $_.CommandLine -replace '\s+',' ' }} | Format-Table -AutoSize -Wrap
+
+foreach ($p in 3400,4443,4699) {
+  "{0}: {1}" -f $p, [bool](Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue)
+}
+</pre>
+<p>Stop <b>one</b> process without killing the others. Never blanket <code>Stop-Process node</code>, which would also stop the API:</p>
+<pre>
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+  Where-Object { $_.CommandLine -like '*partner-receiver*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+</pre>
+
+<h2 class="pb">Appendix A - Command reference</h2>
+<table>
+<tr><th style="width:34%">Task</th><th>Command, from <code>backend</code> unless stated</th></tr>
+<tr><td>Start API</td><td><code>npm start</code></td></tr>
+<tr><td>Start gateway</td><td><code>node scripts\mock-gateway.js</code></td></tr>
+<tr><td>Start receiver</td><td><code>node --env-file=.env scripts\partner-receiver.js</code></td></tr>
+<tr><td>Run exchange tests</td><td><code>node --env-file=.env scripts\secure-tests.js</code></td></tr>
+<tr><td>One SQL query</td><td><code>node --env-file=.env scripts\lab-sql.js "SELECT 1"</code></td></tr>
+<tr><td>Generate keys</td><td><code>node --env-file=.env scripts\secure-keys.js</code></td></tr>
+<tr><td>Set gateway mode</td><td><code>curl.exe -s -X POST http://127.0.0.1:4699/_/mode -H "Content-Type: application/json" --data-binary "@.mode.json"</code></td></tr>
+<tr><td>Gateway state</td><td><code>curl.exe -s http://127.0.0.1:4699/_/state</code></td></tr>
+<tr><td>API health</td><td><code>curl.exe -s http://localhost:3400/api/health</code></td></tr>
+<tr><td>Receiver health</td><td><code>curl.exe --cacert tls\partner.pem -s https://localhost:4443/health</code></td></tr>
+<tr><td>Analyze, project root</td><td><code>flutter analyze</code></td></tr>
+<tr><td>Build, project root</td><td><code>flutter build web --release --no-wasm-dry-run</code></td></tr>
+<tr><td>Drop the database</td><td><code>&amp; "C:\xampp\mysql\bin\mysql.exe" -u root -e "DROP DATABASE clinic_followup_lab;"</code></td></tr>
+</table>
+
+<h2>Appendix B - File map</h2>
+<pre>
+backend/
+  server.js              middleware order, static /app, worker start, attachSecureApi
+  routes.js              login, session, follow-ups, reminder-jobs
+  service.js             enqueue, claim, re-validate, classify, commit, escalate, retry
+  worker.js              polled single-attempt worker
+  auth.js                scrypt hashes, sessions, CSRF, role gate  - req.session.user
+  db.js                  pool with dateStrings: true
+  config.js              bounds, loopback assertion
+  schema.sql             7 baseline tables
+  schema-14.sql          secure_outbox, secure_inbox
+  .env                   secrets and paths  (gitignored)
+  crypto/envelope.js     seal and open, ordered checks
+  crypto/keys.js         lazy per-role loading, fingerprints
+  crypto/refkey.js       HMAC pseudonym
+  secure/sender.js       minimise, seal, outbox, pinned TLS post
+  secure/api.js          4 endpoints, doctor gate
+  scripts/               mock-gateway, seed, lab-sql, partner-receiver,
+                         secure-keys, secure-tests
+  public/app/            deployed Flutter release build
+  keys/                  private key material  (gitignored)
+  tls/                   certificates  (gitignored)
+
+lib/
+  main.dart              session resume, decides login or shell
+  api/clinic_api.dart    SINGLETON: ClinicApi.instance
+  api/reminder_api.dart  reminder endpoints
+  api/secure_api.dart    exchange endpoints
+  screens/               login, overview, follow-ups, reminders, detail,
+                         settings, shell, secure_exchange
+  widgets/ui.dart        shared states, appBar(String title, {...}), EmptyView
+
+docs/lab/module13/       log, design records, evidence, screens
+docs/lab/module14/       log, design records, evidence, screens, report
+</pre>
+
+<h2>Appendix C - Completion checklist</h2>
+<table>
+<tr><th style="width:6%">#</th><th>Item</th><th style="width:10%">Done</th></tr>
+<tr><td>1</td><td><code>flutter doctor</code> shows Flutter, Dart and Chrome</td><td></td></tr>
+<tr><td>2</td><td>Seven baseline tables exist, plus two <code>secure_*</code> if using exchange</td><td></td></tr>
+<tr><td>3</td><td><code>.env</code> has a 64-character <code>SESSION_SECRET</code>; <code>git check-ignore backend/.env</code> matches</td><td></td></tr>
+<tr><td>4</td><td>Eight follow-ups exist; <code>due_date</code> prints as <code>YYYY-MM-DD</code></td><td></td></tr>
+<tr><td>5</td><td>Backend log shows <code>listening</code>, <code>worker.started</code>, <code>secure.routes.mounted</code></td><td></td></tr>
+<tr><td>6</td><td><code>worker.error</code> count is 0</td><td></td></tr>
+<tr><td>7</td><td><code>flutter analyze</code> reports <code>No issues found!</code></td><td></td></tr>
+<tr><td>8</td><td>Build log has <code>Built build\web</code>, zero <code>Error:</code>, zero <code>NativeCommandError</code></td><td></td></tr>
+<tr><td>9</td><td>Served <code>main.dart.js</code> hash equals the built hash</td><td></td></tr>
+<tr><td>10</td><td>A reminder reaches <code>succeeded</code> with 1 attempt, HTTP 200</td><td></td></tr>
+<tr><td>11</td><td>A follow-up reaches <code>reminded</code> at version 2</td><td></td></tr>
+<tr><td>12</td><td><code>secure-tests.log</code> shows <code>12 of 12 cases passed</code></td><td></td></tr>
+<tr><td>13</td><td><code>keyinfo</code> reports <code>recipientDecrypt.present = false</code></td><td></td></tr>
+<tr><td>14</td><td>Log hygiene scan prints <code>clean</code></td><td></td></tr>
+<tr><td>15</td><td><code>git ls-files</code> lists no <code>.pem</code>, <code>.key</code>, <code>keys/</code> or <code>.env</code></td><td></td></tr>
+</table>
+
+</body></html>

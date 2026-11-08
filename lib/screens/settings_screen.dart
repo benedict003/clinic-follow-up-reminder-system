@@ -1,6 +1,8 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 
+import 'secure_exchange_screen.dart';
+
 import '../api/clinic_api.dart';
 import '../config/app_config.dart';
 import '../widgets/ui.dart';
@@ -130,6 +132,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? 'Signed in as ${ClinicApi.instance.displayName} '
               '(${ClinicApi.instance.role})'
               : 'Not signed in'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('Secure exchange'),
+          subtitle: const Text('Seal a minimised record and send it to the partner'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SecureExchangeScreen(),
+            ),
+          ),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,

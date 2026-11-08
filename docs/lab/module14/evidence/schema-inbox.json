@@ -1,0 +1,6 @@
+﻿[
+  {
+    "Table": "secure_inbox",
+    "Create Table": "CREATE TABLE `secure_inbox` (\n  `id` bigint(20) NOT NULL AUTO_INCREMENT,\n  `message_id` char(36) NOT NULL,\n  `sender` varchar(40) NOT NULL,\n  `recipient` varchar(40) NOT NULL,\n  `key_id` varchar(40) NOT NULL,\n  `payload_sha256` char(64) NOT NULL,\n  `plaintext_bytes` int(11) NOT NULL,\n  `issued_at` datetime(3) NOT NULL,\n  `received_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uq_inbox_message` (`message_id`),\n  KEY `idx_inbox_received` (`received_at`)\n) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+  }
+]

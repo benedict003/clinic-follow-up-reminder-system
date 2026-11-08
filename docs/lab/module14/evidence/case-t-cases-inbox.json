@@ -1,0 +1,22 @@
+﻿[
+  {
+    "id": 7,
+    "message_id": "b4c98738-85c8-4252-9804-9dbec8c56991",
+    "sender": "clinic-api",
+    "recipient": "records-office",
+    "key_id": "clinic-2026-q4",
+    "payload_sha256": "ff1c4ae9f01609fa2718f065009ea2389697a087a9436ea50447ed54b7276c86",
+    "plaintext_bytes": 95,
+    "received_at": "2026-11-07 21:18:26.282"
+  },
+  {
+    "id": 9,
+    "message_id": "29912749-24d2-41a1-b756-837d5f17a9ac",
+    "sender": "clinic-api",
+    "recipient": "records-office",
+    "key_id": "clinic-2026-q4",
+    "payload_sha256": "7181fd732ede3d6dc8af32e24758cf734d7e5f486d21ef45ace003a521c61404",
+    "plaintext_bytes": 105,
+    "received_at": "2026-11-07 21:18:26.391"
+  }
+]

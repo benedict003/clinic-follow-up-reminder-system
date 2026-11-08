@@ -4,3 +4,9 @@ backend/public/app/
 build/
 .dart_tool/
 *.log
+
+keys/
+tls/
+*.pem
+*.key
+*.pfx

@@ -1,0 +1,38 @@
+PS C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system\backend> $Base = "http://localhost:3400"
+>> $env:LAB_PASSWORD = "lab-password-2026"
+>> @{ username='doctor1'; password=$env:LAB_PASSWORD } |
+>>   ConvertTo-Json -Compress | Set-Content -NoNewline d.json
+>> $login = curl.exe -s -c doctor.jar -X POST "$Base/api/login" `
+>>   -H "Content-Type: application/json" --data-binary "@d.json" | ConvertFrom-Json
+>> "role: $($login.user.role)"
+>> curl.exe -s -b doctor.jar "$Base/api/secure/keyinfo" | ConvertFrom-Json | ConvertTo-Json -Depth 4
+role: doctor
+{
+    "keyId":  "clinic-2026-q4",
+    "keys":  {
+                 "senderSigning":  {
+                                       "present":  true,
+                                       "fingerprint":  "b27727ea7c3fdc25"
+                                   },
+                 "senderVerify":  {
+                                      "present":  true,
+                                      "fingerprint":  "b966428412f72bd7"
+                                  },
+                 "recipientEncrypt":  {
+                                          "present":  true,
+                                          "fingerprint":  "be9d8145a7357f4d"
+                                      },
+                 "recipientDecrypt":  {
+                                          "present":  true,
+                                          "fingerprint":  "3075e6c87cfd8c42"
+                                      }
+             },
+    "refKeyId":  "ref-2026-01",
+    "withheld":  [
+                     "patient_name",
+                     "patient_id",
+                     "reason",
+                     "created_by",
+                     "contact_number"
+                 ]
+}

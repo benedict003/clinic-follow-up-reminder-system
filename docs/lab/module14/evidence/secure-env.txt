@@ -1,0 +1,16 @@
+SECURE_KEY_DIR=keys
+SECURE_SENDER_PRIVATE_KEY=keys/sender-private.pem
+SECURE_SENDER_PUBLIC_KEY=keys/sender-public.pem
+SECURE_RECIPIENT_PUBLIC_KEY=keys/recipient-public.pem
+SECURE_RECIPIENT_PRIVATE_KEY=keys/recipient-private.pem
+SECURE_REF_KEY_FILE=keys/ref.key
+SECURE_REF_KEY_ID=ref-2026-01
+SECURE_KEY_ID=clinic-2026-q4
+SECURE_SENDER_NAME=clinic-api
+SECURE_RECIPIENT_NAME=records-office
+SECURE_PARTNER_URL=https://localhost:4443/receive
+SECURE_PARTNER_CA=tls/partner.pem
+SECURE_PARTNER_CERT=tls/partner.pem
+SECURE_PARTNER_CERT_KEY=tls/partner-key.pem
+SECURE_PARTNER_PORT=4443
+SECURE_TTL_MS=300000
