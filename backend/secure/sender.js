@@ -143,7 +143,7 @@ export async function sendSecureRecord(followUpId, actor) {
 
   try {
     const res = await postEnvelope(sealed.envelope);
-    const ok = res.status === 200 && res.body?.receipt;
+    const ok = res.status === 200 && Boolean(res.body?.receipt);
     await pool.execute(
       'UPDATE secure_outbox SET status=?, http_status=?, error_code=?, detail=? WHERE message_id=?',
       [ok ? 'delivered' : 'rejected', res.status,
@@ -153,9 +153,12 @@ export async function sendSecureRecord(followUpId, actor) {
     );
     log(ok ? 'envelope.delivered' : 'envelope.rejected',
       { messageId: sealed.messageId, httpStatus: res.status, code: res.body?.error?.code ?? null });
-    return {
-      ok, status: res.status, record, envelope: meta,
-      receipt: res.body?.receipt ?? null,
+        return {
+      ok: Boolean(ok),
+      status: res.status,
+      record,
+      envelope: meta,
+      receipt: ok ? (res.body?.receipt ?? null) : null,
       error: ok ? null : (res.body?.error ?? { code: 'PARTNER_REJECTED', message: res.raw }),
     };
   } catch (e) {

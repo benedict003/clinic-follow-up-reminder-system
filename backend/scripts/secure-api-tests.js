@@ -47,6 +47,16 @@ async function call(method, path, who, { csrf = true } = {}) {
     `${r.status} ${r.body?.error ?? ''}`,
     r.status === 403 && /doctor/i.test(r.body?.error ?? ''));
 
+    r = await call('GET', '/api/secure/messages', doctor);
+  const last = (r.body?.messages ?? [])[0];
+  record('A2b', 'Delivered response carries ok === true', 'typeof boolean true',
+    last ? `row ${last.status}; sha ${String(last.payload_sha256).slice(0, 12)}` : 'no rows',
+    Boolean(last) && last.status === 'delivered');
+  r = await call('POST', `/api/secure/send/${id}`, doctor, { csrf: true });
+  record('A2c', 'ok is a boolean in the JSON body', 'true',
+    `ok=${JSON.stringify(r.body?.ok)} type=${typeof r.body?.ok}`,
+    r.body?.ok === true);
+
   r = await call('POST', `/api/secure/send/${id}`, doctor);
   record('A2', 'Doctor can disclose', '200 delivered',
     `${r.status} ok=${r.body?.ok} ${r.body?.error?.code ?? ''}`,
