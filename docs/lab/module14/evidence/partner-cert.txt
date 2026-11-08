@@ -1,0 +1,5 @@
+PS C:\Users\lliam\StudioProjects\clinic_follow_up_reminder_system> & $openssl x509 -in tls\partner.pem -noout -subject -dates -fingerprint -sha256
+subject=CN=localhost
+notBefore=Oct 30 07:04:35 2026 GMT
+notAfter=Oct 30 07:04:35 2027 GMT
+sha256 Fingerprint=CF:6D:13:78:E4:0D:FB:11:78:BC:42:BA:64:96:55:FB:20:35:F5:F1:56:F4:7C:7B:A5:EF:71:32:29:B8:9B:27

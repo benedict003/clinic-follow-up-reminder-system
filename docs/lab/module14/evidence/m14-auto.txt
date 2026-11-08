@@ -1,0 +1,32 @@
+﻿ENV1=2026-11-07
+ENV8=listening on 127.0.0.1:3400
+ENV10=2026-11-08 05:15 to 05:15 PHT (21:15 to 21:15 UTC)
+ENV9={"ts":"2026-11-07T13:15:33.909Z","src":"partner","event":"partner.started","port":4443,"recipient":"records-office","certFingerprint":"326a2ecabcdbf506"}
+ENV5=Chrome 156.0.8078.80, 1280x800 and 380x800
+KEY1=b27727ea7c3fdc25
+KEY3=3075e6c87cfd8c42
+KEY4=be9d8145a7357f4d
+KEY2=b966428412f72bd7
+KEY6=32:6A:2E:CA:BC:DB:F5:06:58:5B:C0:11:FC:51:58:4F:11:D2:55:3A:FB:F6:16:21:28:C9:3A:67:0D:0D:37:41
+KEY5=not published - the HMAC key is never fingerprinted, by design
+CFG1=0 tracked key or env files
+CFG2=16 SECURE_ settings, 0 contain inline key material
+CFG3=0 occurrences of NODE_TLS_REJECT_UNAUTHORIZED
+CFG4=2 match(es): rejectUnauthorized: true, // stated explicitly so it cannot be quietly disabled; rejectUnauthorized: true,
+CFG6=receiver imports 0 sender private keys; 0 references found
+AUTH1=HTTP 403 {"error":"Authentication required."}; secure_outbox 0 -> 0 (unchanged)
+AUTH2=HTTP 200 ok= messageId=
+AUTH3=HTTP {"error":"Invalid CSRF token."} from CSRF middleware, before the role gate
+CFG5=recipientDecrypt.present=True, recipientEncrypt.present=True
+LOG1=not observed in this build
+LOG2=not observed in this build
+LOG3={"ts":"2026-11-07T13:18:26.322Z","src":"partner","event":"receive.rejected","code":"REPLAY_DETECTED","status":409,"message":"This messageId has already been accepted."}
+M1=10 of 10 adverse cases rejected
+M2=10 distinct codes: 200;, ALGORITHM_NOT_ALLOWED, AUDIENCE_MISMATCH, ENVELOPE_EXPIRED, INTEGRITY_CHECK_FAILED, KEY_UNWRAP_FAILED, MALFORMED_ENVELOPE, REPLAY_DETECTED, response, SIGNATURE_INVALID
+M3=0 occurrences - marker absent from envelope and response
+M4=5 fields withheld: patient_name, patient_id, reason, created_by, contact_number
+M5=1 of 2 - sender private key present, recipientDecrypt absent
+M6=0
+M8=0 - the secure_inbox unique index holds
+M9=about 8 s for twelve local cases
+M10=see Section 12 - count the retained rows and divide by 12

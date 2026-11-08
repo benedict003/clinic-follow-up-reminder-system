@@ -1,0 +1,278 @@
+// Twelve adverse cases against the partner receiver.
+// T4 and T5 are the pair that matters: the signature stops an outsider, and the
+// AEAD tag stops someone who holds the signing key and re-signs after tampering.
+import https from 'node:https';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import crypto from 'node:crypto';
+import { seal, b64u, unb64u } from '../crypto/envelope.js';
+import { keyInfo } from '../crypto/keys.js';
+
+const URL_ = process.env.SECURE_PARTNER_URL || 'https://localhost:4443/receive';
+const CA = process.env.SECURE_PARTNER_CA || 'tls/partner.pem';
+const SENDER = process.env.SECURE_SENDER_NAME || 'clinic-api';
+const RECIPIENT = process.env.SECURE_RECIPIENT_NAME || 'records-office';
+const KEY_ID = process.env.SECURE_KEY_ID || 'clinic-2026-q4';
+const EVIDENCE = '../docs/lab/module14/evidence';
+
+mkdirSync(EVIDENCE, { recursive: true });
+
+const signKey = readFileSync(process.env.SECURE_SENDER_PRIVATE_KEY, 'utf8');
+const recPub = readFileSync(process.env.SECURE_RECIPIENT_PUBLIC_KEY, 'utf8');
+const caPem = readFileSync(CA, 'utf8');
+
+const sealFor = (payload, extra = {}) => seal({
+  payload,
+  sender: SENDER,
+  recipient: extra.recipient ?? RECIPIENT,
+  keyId: KEY_ID,
+  recipientPublicKeyPem: extra.recipientPublicKeyPem ?? recPub,
+  signingPrivateKeyPem: signKey,
+  ttlMs: extra.ttlMs ?? 300000,
+  now: extra.now,
+});
+
+function post(envelope, ca = caPem) {
+  const t0 = Date.now();
+  const url = new URL(URL_);
+  const body = JSON.stringify({ envelope });
+  return new Promise(resolve => {
+    const req = https.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      method: 'POST',
+      servername: url.hostname,
+      ca,
+      rejectUnauthorized: true,
+      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) },
+      timeout: 8000,
+    }, res => {
+      let t = '';
+      res.on('data', c => { t += c; });
+      res.on('end', () => {
+        let b = null;
+        try { b = JSON.parse(t); } catch { /* keep raw */ }
+        postDurations.push(Date.now() - t0);
+        resolve({ status: res.statusCode, body: b, raw: t });
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', e => {
+      postDurations.push(Date.now() - t0);
+      resolve({ status: 0, body: null, error: e.code || e.message });
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+/** Re-sign after tampering: simulates a compromised or buggy sender. */
+function resign(parts) {
+  const [v, h, ct, tag] = parts;
+  const input = `${v}.${h}.${ct}.${tag}`;
+  return `${input}.${b64u(crypto.sign(null, Buffer.from(input, 'utf8'), signKey))}`;
+}
+// Per-case timing, captured from post() rather than reconstructed from a log.
+// The log cannot be indexed by case: T18 makes three requests and the file
+// accumulates across the whole run.
+const postDurations = [];
+let consumedDurations = 0;
+const results = [];
+
+
+const record = (id, name, expected, observed, pass) => {
+  const slice = postDurations.slice(consumedDurations);
+  consumedDurations = postDurations.length;
+  results.push({
+    id, name, expected, observed, pass,
+    ms: slice.reduce((a, b) => a + b, 0),
+    requests: slice.length,
+  });
+};
+
+async function run() {
+  const base = JSON.stringify({
+    recordRef: 'R-casebase',
+    dueDate: '2026-10-30',
+    status: 'scheduled',
+    action: 'send_reminder',
+  });
+
+  // T1 genuine
+  const p1 = sealFor(base);
+  const r1 = await post(p1.envelope);
+  record('T1', 'Genuine envelope accepted', '200 delivered',
+    `${r1.status} ${r1.body?.receipt ? 'receipt' : (r1.body?.error?.code ?? r1.error ?? '')}`,
+    r1.status === 200 && !!r1.body?.receipt);
+
+  // T2 replay of the accepted envelope
+  const r2 = await post(p1.envelope);
+  record('T2', 'Identical envelope replayed', '409 REPLAY_DETECTED',
+    `${r2.status} ${r2.body?.error?.code ?? ''}`,
+    r2.status === 409 && r2.body?.error?.code === 'REPLAY_DETECTED');
+
+  // T3 expired
+  const r3 = await post(sealFor(base, { ttlMs: -1000 }).envelope);
+  record('T3', 'Envelope past its exp', '410 ENVELOPE_EXPIRED',
+    `${r3.status} ${r3.body?.error?.code ?? ''}`,
+    r3.status === 410 && r3.body?.error?.code === 'ENVELOPE_EXPIRED');
+
+  // T4 ciphertext flipped, signature left intact
+  const q4 = sealFor(base).envelope.split('.');
+  const c4 = unb64u(q4[2]); c4[0] ^= 0xff; q4[2] = b64u(c4);
+  const r4 = await post(q4.join('.'));
+  record('T4', 'Ciphertext flipped, signature intact', '422 SIGNATURE_INVALID',
+    `${r4.status} ${r4.body?.error?.code ?? ''}`,
+    r4.status === 422 && r4.body?.error?.code === 'SIGNATURE_INVALID');
+
+  // T5 same tamper, re-signed: only the AEAD tag can catch it
+  const q5 = sealFor(base).envelope.split('.');
+  const c5 = unb64u(q5[2]); c5[c5.length - 1] ^= 0x01; q5[2] = b64u(c5);
+  const r5 = await post(resign(q5));
+  record('T5', 'Ciphertext flipped and re-signed', '422 INTEGRITY_CHECK_FAILED',
+    `${r5.status} ${r5.body?.error?.code ?? ''}`,
+    r5.status === 422 && r5.body?.error?.code === 'INTEGRITY_CHECK_FAILED');
+
+  // T6 authenticated header altered and re-signed
+  const q6 = sealFor(base).envelope.split('.');
+  const h6 = JSON.parse(unb64u(q6[1]).toString('utf8'));
+  h6.keyId = 'clinic-2026-q3';
+  q6[1] = b64u(Buffer.from(JSON.stringify(h6), 'utf8'));
+  const r6 = await post(resign(q6));
+  record('T6', 'Header altered and re-signed', '422 INTEGRITY_CHECK_FAILED',
+    `${r6.status} ${r6.body?.error?.code ?? ''}`,
+    r6.status === 422 && r6.body?.error?.code === 'INTEGRITY_CHECK_FAILED');
+
+  // T7 sealed to a key the receiver does not hold
+  const wrong = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  const r7 = await post(sealFor(base, { recipientPublicKeyPem: wrong.publicKey }).envelope);
+  record('T7', 'Wrapped for a different key', '422 KEY_UNWRAP_FAILED',
+    `${r7.status} ${r7.body?.error?.code ?? ''}`,
+    r7.status === 422 && r7.body?.error?.code === 'KEY_UNWRAP_FAILED');
+
+  // T8 algorithm downgrade
+  const q8 = sealFor(base).envelope.split('.');
+  const h8 = JSON.parse(unb64u(q8[1]).toString('utf8'));
+  h8.enc = 'AES-128-CBC';
+  q8[1] = b64u(Buffer.from(JSON.stringify(h8), 'utf8'));
+  const r8 = await post(resign(q8));
+  record('T8', 'Algorithm downgrade in the header', '400 ALGORITHM_NOT_ALLOWED',
+    `${r8.status} ${r8.body?.error?.code ?? ''}`,
+    r8.status === 400 && r8.body?.error?.code === 'ALGORITHM_NOT_ALLOWED');
+
+  // T9 malformed
+  const r9 = await post('v1.only.three');
+  record('T9', 'Truncated envelope', '400 MALFORMED_ENVELOPE',
+    `${r9.status} ${r9.body?.error?.code ?? ''}`,
+    r9.status === 400 && r9.body?.error?.code === 'MALFORMED_ENVELOPE');
+
+  // T10 audience mismatch
+  const r10 = await post(sealFor(base, { recipient: 'other-service' }).envelope);
+  record('T10', 'Addressed to another recipient', '422 AUDIENCE_MISMATCH',
+    `${r10.status} ${r10.body?.error?.code ?? ''}`,
+    r10.status === 422 && r10.body?.error?.code === 'AUDIENCE_MISMATCH');
+
+  // T11 certificate the sender does not trust
+  const wrongCa = readFileSync(process.env.SECURE_TLS_CERT || 'tls/clinic-local.pem', 'utf8');
+  const r11 = await post(sealFor(base).envelope, wrongCa);
+  record('T11', 'Certificate not signed by the pinned CA', 'TLS handshake failure',
+    `${r11.status || 'no response'} ${r11.error ?? ''}`,
+    r11.status === 0 && !!r11.error);
+
+  // T12 plaintext never on the wire, never echoed
+  const marker = 'T12-PLAINTEXT-MARKER';
+  const p12 = sealFor(JSON.stringify({
+    recordRef: marker,
+    dueDate: '2026-10-30',
+    status: 'scheduled',
+    action: 'send_reminder',
+  }));
+  const r12 = await post(p12.envelope);
+  const wire = p12.envelope.includes(marker);
+  const echoed = JSON.stringify(r12.body ?? {}).includes(marker);
+  record('T12', 'Plaintext absent from wire and receipt',
+    'no marker on the wire or in the response',
+    `status ${r12.status}; envelope=${wire}; response=${echoed}`,
+    r12.status === 200 && !wire && !echoed);
+      // ── deployment: what THIS process holds ────────────────────────────────
+  // The twelve cases above all speak to the receiver. None of them asks the
+  // sender what it can read, which is how the key-separation claim survived
+  // a full green run.
+  const info = keyInfo();
+  const rd = info.keys.recipientDecrypt;
+  record('T13', 'Sender process cannot decrypt what it sends', 'recipientDecrypt absent',
+    rd.present ? `present (fp ${rd.fingerprint})` : 'absent', rd.present === false);
+
+  const sv = info.keys.senderSigning;
+  record('T14', 'Sender process holds its signing key', 'senderSigning present',
+    sv.present ? `present (fp ${sv.fingerprint})` : 'absent', sv.present === true);
+
+  // ── protocol, continued ────────────────────────────────────────────────
+  let r;   // the cases above each declared their own const rN
+
+  r = await post(sealFor(base, { now: Date.now() + 600000, ttlMs: 900000 }).envelope);
+  record('T15', 'issuedAt far in the future', '422 NOT_YET_VALID',
+    `${r.status} ${r.body?.error?.code ?? ''}`,
+    r.status === 422 && r.body?.error?.code === 'NOT_YET_VALID');
+
+  const q16 = sealFor(base).envelope.split('.');
+  const h16 = JSON.parse(unb64u(q16[1]).toString('utf8'));
+  h16.recipient = 'other-service';
+  q16[1] = b64u(Buffer.from(JSON.stringify(h16), 'utf8'));
+  r = await post(q16.join('.'));
+  record('T16', 'Header altered without re-signing', '422 SIGNATURE_INVALID',
+    `${r.status} ${r.body?.error?.code ?? ''}`,
+    r.status === 422 && r.body?.error?.code === 'SIGNATURE_INVALID');
+
+  const q17 = sealFor(base).envelope.split('.');
+  const h17 = JSON.parse(unb64u(q17[1]).toString('utf8'));
+  h17.wrappedKey = b64u(crypto.randomBytes(256));   // RSA-2048 ciphertext length
+  q17[1] = b64u(Buffer.from(JSON.stringify(h17), 'utf8'));
+  r = await post(resign(q17));
+  record('T17', 'Wrapped key replaced and re-signed', '422 KEY_UNWRAP_FAILED',
+    `${r.status} ${r.body?.error?.code ?? ''}`,
+    r.status === 422 && r.body?.error?.code === 'KEY_UNWRAP_FAILED');
+
+  // ── the stored state, not the response ─────────────────────────────────
+  let inbox;
+  try {
+    const { pool } = await import('../db.js');
+    const count = async () =>
+      Number((await pool.execute('SELECT COUNT(*) AS n FROM secure_inbox'))[0][0].n);
+    const before = await count();
+    const p18 = sealFor(base);
+    const acc = await post(p18.envelope);
+    const mid = await count();
+    const rej = await post(p18.envelope);
+    const after = await count();
+    inbox = { accepted: acc.status, replay: rej.status, before, mid, after };
+  } catch (e) {
+    inbox = { error: e.message };
+  }
+  record('T18', 'A rejected replay adds no inbox row', 'count unchanged after 409',
+    inbox.error
+      ? `skipped: ${inbox.error}`
+      : `accept ${inbox.accepted}; replay ${inbox.replay}; inbox ${inbox.before} -> ${inbox.mid} -> ${inbox.after}`,
+    inbox.error ? false : (inbox.replay === 409 && inbox.mid === inbox.after));
+  const pad = (s, n) => String(s).padEnd(n);
+  console.log('');
+  console.log(pad('ID', 5) + pad('Case', 40) + pad('Expected', 32) + pad('Observed', 34) + 'Result');
+  console.log('-'.repeat(128));
+  for (const r of results) {
+    console.log(pad(r.id, 5) + pad(r.name, 40) + pad(r.expected, 32) +
+      pad(r.observed, 34) + (r.pass ? 'PASS' : 'FAIL'));
+  }
+  const passed = results.filter(r => r.pass).length;
+  console.log(`\n${passed} of ${results.length} cases passed.`);
+
+  writeFileSync(`${EVIDENCE}/secure-tests.json`, JSON.stringify(results, null, 2));
+  console.log(`json written: ${EVIDENCE}/secure-tests.json`);
+
+  process.exit(passed === results.length ? 0 : 1);
+}
+
+run().catch(e => { console.error('harness error:', e); process.exit(2); });

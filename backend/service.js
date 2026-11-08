@@ -234,8 +234,7 @@ export async function inspectQueuedRecord(job) {
     body: {
       followUpId: fu.id,
       dueDate: ymd(fu.due_date),
-      // No patient name, no contact details: the gateway only needs the id.
-      role: cfg.alertRole,
+      action: 'send_reminder',
     },
   };
 }
@@ -338,30 +337,38 @@ export async function retryJob(id, reason, actor) {
   if (note.length < 8 || note.length > 300) {
     throw httpError(400, 'A reason of 8–300 characters is required.');
   }
-  const [rows] = await pool.execute(
-    'SELECT id, status, attempts, max_attempts FROM reminder_jobs WHERE id=? FOR UPDATE', [id]
-  );
-  const job = rows[0];
-  if (!job) throw httpError(404, 'Reminder job not found.');
-  if (job.status === JOB.SUCCEEDED) throw httpError(409, 'This job already succeeded.');
-  if (job.status === JOB.OBSOLETE) throw httpError(409, 'This follow-up is no longer pending.');
-  if (job.status === JOB.RUNNING) throw httpError(409, 'This job is running. Try again in a moment.');
 
-  const nextMax = Math.min(10, Number(job.max_attempts) + 2);
-  const stamp = now();
-  await pool.execute(
-    `UPDATE reminder_jobs SET status='queued', max_attempts=?, next_run_at=?, updated_at=?
-      WHERE id=?`, [nextMax, Date.now(), stamp, id]
-  );
-  await pool.execute(
-    `INSERT INTO reminder_attempts
-      (job_id, attempt_no, correlation_id, started_at, duration_ms, outcome, actor_note)
-     VALUES (?,?,?,?,0,'human_retry',?)`,
-    [id, Number(job.attempts), newCorrelationId(), stamp, `${actor.name}: ${note}`]
-  );
-  await pool.execute(
-    'UPDATE reminder_alerts SET read_at = COALESCE(read_at, ?) WHERE job_id = ?', [stamp, id]
-  );
+  // The status check and the requeue must share one lock. On the pool, autocommit
+  // released FOR UPDATE immediately, so two concurrent retries could both see
+  // needs_human and both requeue.
+  await withTx(async c => {
+    const [rows] = await c.execute(
+      'SELECT id, status, attempts, max_attempts FROM reminder_jobs WHERE id=? FOR UPDATE', [id]
+    );
+    const job = rows[0];
+    if (!job) throw httpError(404, 'Reminder job not found.');
+    if (job.status === JOB.SUCCEEDED) throw httpError(409, 'This job already succeeded.');
+    if (job.status === JOB.OBSOLETE) throw httpError(409, 'This follow-up is no longer pending.');
+    if (job.status === JOB.RUNNING) throw httpError(409, 'This job is running. Try again in a moment.');
+    if (job.status === JOB.QUEUED) throw httpError(409, 'This job is already queued.');
+
+    const nextMax = Math.min(10, Number(job.max_attempts) + 2);
+    const stamp = now();
+    await c.execute(
+      `UPDATE reminder_jobs SET status='queued', max_attempts=?, next_run_at=?, updated_at=?
+        WHERE id=?`, [nextMax, Date.now(), stamp, id]
+    );
+    await c.execute(
+      `INSERT INTO reminder_attempts
+        (job_id, attempt_no, correlation_id, started_at, duration_ms, outcome, actor_note)
+       VALUES (?,?,?,?,0,'human_retry',?)`,
+      [id, Number(job.attempts), newCorrelationId(), stamp, `${actor.name}: ${note}`]
+    );
+    await c.execute(
+      'UPDATE reminder_alerts SET read_at = COALESCE(read_at, ?) WHERE job_id = ?', [stamp, id]
+    );
+  });
+
   return findJobDetail(id);
 }
 
