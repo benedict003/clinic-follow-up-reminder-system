@@ -17,6 +17,8 @@ conditions, and an honest list of what was not tested.
 | `evidence/04-no-compression/` | The same workload with compression off, for a real A/B |
 | `evidence/05-rollback/` | Backup, damage, restore, verification, recovery time |
 | `evidence/06-deployment/` | What a browser actually downloaded, and that the app still loads |
+| `screens/` | Eight interface captures at 1280 and 380, plus `captures.json` recording how each was reached |
+| `capture-screens.js` | Retakes them (Chrome over DevTools, exact widths) |
 | `WORKLOAD.md` | The workload model and acceptance criteria, written before measuring |
 | `MONITORING.md` | Liveness vs readiness, metrics, what an operator does with them |
 | `DEPLOYMENT.md` | Checklist, environment comparison, build artifact sizes |

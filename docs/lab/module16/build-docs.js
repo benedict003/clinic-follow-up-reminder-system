@@ -246,6 +246,11 @@ function buildReport() {
   b.push(p('**The compression A/B.** The same workload was run with compression off. At concurrency 8 the difference is inside the noise (5.79 ms against 5.80 ms at p50) and p99 is 1.1 ms worse with compression on. At concurrency 32 compression is unambiguously better: p50 18.86 ms against 23.87 ms, and 1,497 req/s against 1,162. On a loopback the socket is not the bottleneck at low load, so compression is a small CPU cost; once the socket matters, it pays for itself. On a real network the 68% byte reduction dominates both.'));
   b.push(p('**Was excluding wasm a mistake.** The first implementation compressed text only. Measuring the wasm renderer showed brotli takes it from 5.46 MB to 1.85 MB, so it was included; the cost is 227 ms of CPU once per file version, cached. That is an example of a decision that felt sensible and was wrong, caught by a measurement rather than by review.'));
 
+  b.push(p('**Interface evidence.** The delivery change is only an improvement if the app still works through it. These are from the release build after the change, at both required widths.'));
+  b.push(image('16-02-worklist-1280.png', { maxWIn: 6.2, caption: 'The worklist at 1280 after compression and long-lived caching: the screen a clinic opens first.' }));
+  b.push(image('16-04-board-380.png', { maxWIn: 2.4, maxHIn: 4.8, caption: 'The same board at 380 px. Responsive evidence, from the same build.' }));
+  b.push(image('16-07-failure.png', { maxWIn: 6.2, caption: 'Adverse case with the backend stopped: an actionable message and a retry, with no exception text or internal path.' }));
+
   b.push(h('7. Reliability: health, readiness, monitoring', 1));
   b.push(p('The module asks for the distinction between liveness and readiness to be real, not documented. It is, and it was tested by pointing a second instance at a database that does not exist.'));
   b.push(table([
@@ -420,7 +425,29 @@ function buildEvidence() {
     b.push(p('Zero runtime errors is the part that matters: a compression layer that broke the app would still have saved bytes.'));
   }
 
-  b.push(image('16-04-app-after-delivery-change.png', { maxWIn: 6.2, caption: 'The release build after the delivery change: sign-in reached, no runtime errors, 2.65 MB on the wire instead of 8.7 MB.' }));
+  b.push(table([
+    ['File', 'State', 'Width', 'How it was reached'],
+    ['16-01-loading-throttled.png', 'Loading', '380', 'A record opened under 1.2 s of injected latency (CDP); LoadingView while the request is in flight'],
+    ['16-02-worklist-1280.png', 'Success — worklist', '1280', 'Sign in, landings screen'],
+    ['16-03-board-1280.png', 'Success — board', '1280', 'Follow-ups tab'],
+    ['16-04-board-380.png', 'Responsive — board', '380', 'Same screen, viewport narrowed'],
+    ['16-05-record-380.png', 'Responsive — record', '380', 'Record opened from an overdue row'],
+    ['16-06-record-1280.png', 'Success — record', '1280', 'Same record at desktop width'],
+    ['16-07-failure.png', 'Failure', '1280', 'Backend stopped, then Reload'],
+    ['16-08-signin-380.png', 'Success — sign-in', '380', 'Clean load of the entry point'],
+  ], [2500, 1900, 900, 4050], { size: 14 }));
+
+  // Two techniques are worth stating, because a reviewer should know what was
+  // staged and what was not.
+  b.push(p('Two notes on method, because a capture can be honest or flattering. The loading state was made observable by injecting 1.2 s of latency through the DevTools protocol; on loopback the real wait is a few milliseconds. The app was not modified, and the spinner is the same LoadingView every other state uses. The failure state was reached by stopping the backend while the app was signed in, then pressing Reload — not by clearing state in the app.'));
+  b.push(image('16-01-loading-throttled.png', { maxWIn: 2.3, maxHIn: 4.6, caption: '16-01 Loading. A record opening under injected latency: the app waits, it does not freeze.' }));
+  b.push(image('16-02-worklist-1280.png', { maxWIn: 6.2, caption: '16-02 Success. The worklist, after the compression and cache changes.' }));
+  b.push(image('16-03-board-1280.png', { maxWIn: 6.2, caption: '16-03 Success. The board: the busiest read journey, p95 4.60 ms at concurrency 8.' }));
+  b.push(image('16-04-board-380.png', { maxWIn: 2.3, maxHIn: 4.6, caption: '16-04 Responsive. The same board at 380 px.' }));
+  b.push(image('16-05-record-380.png', { maxWIn: 2.3, maxHIn: 4.6, caption: '16-05 Responsive. A record at 380 px, after the loading state above resolved.' }));
+  b.push(image('16-06-record-1280.png', { maxWIn: 6.2, caption: '16-06 Success. The same record at desktop width.' }));
+  b.push(image('16-07-failure.png', { maxWIn: 6.2, caption: '16-07 Failure. Backend stopped: what to do, and a retry, not an exception.' }));
+  b.push(image('16-08-signin-380.png', { maxWIn: 2.3, maxHIn: 4.6, caption: '16-08 Success. The entry point at 380 px — the first screen a compressed bundle has to produce.' }));
 
   b.push(h('5. Reliability evidence', 1));
   b.push(table([
