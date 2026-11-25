@@ -140,3 +140,12 @@ export async function startWorker() {
 }
 
 export function stopWorker() { if (timer) clearInterval(timer); timer = null; started = false; }
+
+/**
+ * True while the poll timer is armed. Read by the readiness check: a process with
+ * no worker is ready for reads but will never deliver a reminder, which is exactly
+ * the state an operator needs to see rather than guess at.
+ */
+export function workerRunning() {
+  return started && timer !== null;
+}

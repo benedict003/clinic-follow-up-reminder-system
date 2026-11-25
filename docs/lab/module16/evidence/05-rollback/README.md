@@ -1,0 +1,13 @@
+# Rollback rehearsal
+
+Ran 2026-11-25T15:21:46.618Z against `clinic_followup_m16`.
+
+**PASS** — recovery time 179 ms.
+
+| Step | Record |
+| --- | --- |
+| 1.backup | `{"name":"1.backup","at":"2026-11-25T15:21:46.786Z","file":"backup.sql","bytes":83480}` |
+| 2.fingerprint_before | `{"name":"2.fingerprint_before","at":"2026-11-25T15:21:46.799Z","tables":10,"followUps":400,"followUpsHash":"3f7c8c79ff2a16e8"}` |
+| 3.bad_change_applied | `{"name":"3.bad_change_applied","at":"2026-11-25T15:21:46.815Z","changed":{"follow_ups":true,"follow_up_events":true},"detectable":true}` |
+| 4.restored | `{"name":"4.restored","at":"2026-11-25T15:21:46.994Z","restoreCommandMs":165,"restoreAndVerifyMs":179,"matchesBefore":true,"tables":10,"followUps":400}` |
+| 5.schema_and_data_verified | `{"name":"5.schema_and_data_verified","at":"2026-11-25T15:21:47.005Z","closeNoteColumnBack":true,"plantedRowsRemaining":0,"corruptedRowsRemaining":0}` |

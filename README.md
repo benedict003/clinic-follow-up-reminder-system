@@ -16,10 +16,30 @@ Flutter Web on the front, everything on loopback with fictional data.
 | 13 | Durable reminder queue: enqueue, retry, escalate, audit every attempt | `docs/lab/module13/` | `module13` |
 | 14 | Secure exchange: a minimised record sealed for one partner, with a receipt | `docs/lab/module14/` | `module14` |
 | 15 | Integration testing and security hardening of everything above | `Module15/`, `docs/lab/module15/` | `module15` |
+| 16 | Performance, reliability and deployment evaluation: a measured workload, readiness vs liveness, compression, rollback rehearsal | `Module16/`, `docs/lab/module16/` | `module16` |
 
 Each module folder holds three documents: the report, the evidence portfolio and
 an operational manual. The working evidence (runs, captures, logs) lives under
 `docs/lab/moduleNN/evidence/`.
+
+### Module 16 at a glance
+
+| | Result |
+| --- | --- |
+| Workload | `backend/tests/m16-perf.js` — 5 read journeys, concurrency 1/8/32, 20 s soak |
+| Read path | board p95 4.60 ms, record p95 2.38 ms, **0 errors** at every level |
+| Saturation | throughput rises only 1.19x from 8 to 32 clients — the ceiling, reported as a failed criterion |
+| First load | 8.7 MB on disk, **2.65 MB on the wire** (68% saved), app loads with no errors |
+| Reliability | readiness 503 in 4 ms vs liveness 200 with the database gone; SIGTERM drains in 112 ms |
+| Rollback | rehearsed: damage detected, data restored exactly, **179 ms** on 400 follow-ups |
+
+```powershell
+cd backend
+node --env-file=.env tests/m16-perf.js --phase full --label 07-review
+node --env-file=.env tests/m16-rollback.js
+```
+
+Verdict and conditions: `docs/lab/module16/ROLLBACK.md`. Monitoring map: `MONITORING.md`.
 
 ### Module 15 at a glance
 
@@ -420,6 +440,8 @@ its own database or a temporary directory.
 | --- | --- | --- |
 | Integration collection | `cd backend && node --env-file=.env tests/m15-collection.js --label 04-review` | 37 |
 | Flutter widget tests | `flutter test` | 20 |
+| Performance + reliability | `cd backend && node --env-file=.env tests/m16-perf.js --phase full` | 5 journeys, 3 levels |
+| Rollback rehearsal | `cd backend && node --env-file=.env tests/m16-rollback.js` | backup / damage / restore / verify |
 
 The collection owns `clinic_followup_m15` and ports 3411/4799. It drops the database at
 the start of every run, so a run is always from the same starting state. Failure

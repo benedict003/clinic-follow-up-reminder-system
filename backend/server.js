@@ -5,7 +5,9 @@ import { join } from 'node:path';
 import { cfg } from './config.js';
 import { attachSession, csrfProtection, originCheck, requireLogin } from './auth.js';
 import { routes, login } from './routes.js';
-import { startWorker } from './worker.js';
+import { startWorker, stopWorker, workerRunning } from './worker.js';
+import { attachObservability, installShutdown, recordRequest } from './observability.js';
+import { serveApp, compressJson } from './delivery.js';
 import {
   requestContext, securityHeaders, rateLimit, errorHandler, notFoundHandler,
 } from './security.js';
@@ -20,9 +22,7 @@ app.disable('x-powered-by');
 app.use(requestContext);
 app.use(securityHeaders);
 
-// Generous ceiling that exists to bound abuse, not to shape normal use: a single
-// clinician working the board stays far below it.
-app.use('/api', rateLimit({ name: 'api-burst', windowMs: 60_000, max: 300 }));
+
 
 if (cfg.devCors) {
   app.use((req, res, next) => {
@@ -47,25 +47,56 @@ app.use(express.json({ limit: '64kb' }));
 // Flutter Web release build. Must be built with --base-href=/app/.
 const webRoot = join(process.cwd(), 'public', 'app');
 if (existsSync(webRoot)) {
-  app.use('/app', express.static(webRoot, { index: 'index.html' }));
+  // express.static sent 2.95 MB of JavaScript uncompressed and gave every file the
+  // same Cache-Control. serveApp fixes both and records why in delivery.js.
+  app.use('/app', serveApp(webRoot));
 }
+
+// JSON compression for the API. Patient records are not cacheable, but they are
+// compressible, and the board payload is not small.
+app.use('/api', compressJson());
 
 app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 app.use('/api', attachSession);
 
-// PUBLIC liveness. Before requireLogin, so a client can tell "backend down" from
-// "not signed in". The login screen probes exactly this.
-app.get('/api/health', (_req, res) => res.json({
-  ok: true,
-  service: 'clinic-follow-up-reminders',
-  time: new Date().toISOString(),
-  uptimeSeconds: Math.round(process.uptime()),
+// Rate limits sit after attachSession on purpose: the useful key is the signed-in
+// user, and that does not exist one line earlier. Before Module 16 they were
+// mounted above it, so key 'user' degraded to the address and every workstation
+// behind one NAT shared a single budget (measured: 2,262 refused requests in one
+// run, all under one key fingerprint).
+// Probes must never be refused: a 429 to a readiness check reads as an outage.
+// originalUrl, not path: inside app.use('/api', ...) Express trims req.url, so a
+// comparison against '/health' silently never matched and a monitoring probe was
+// refused with 429 under load — measured at the end of the first full run.
+const isProbe = (req) => {
+  const p = String(req.originalUrl || req.url || '').split('?')[0];
+  return p === '/api/health' || p === '/api/ready' || p === '/api/metrics';
+};
+
+// Per authenticated user. This is the limit a clinician could ever notice.
+app.use('/api', rateLimit({
+  name: 'api-user', windowMs: 60_000, max: cfg.rateLimit.userPerMinute,
+  key: 'user', skip: isProbe,
 }));
+
+// Per address, set well above the user limit. Its job is to stop one host
+// opening many sessions and flooding, not to shape ordinary work.
+app.use('/api', rateLimit({
+  name: 'api-address', windowMs: 60_000, max: cfg.rateLimit.addressPerMinute,
+  key: 'ip', skip: isProbe,
+}));
+
+// PUBLIC liveness, readiness and metrics live in observability.js so the three
+// questions (alive / able to serve / how is it going) stay visibly separate.
+attachObservability(app, {
+  routeMounts: () => ({ secure: secureMounted, clinical: clinicalMounted }),
+  workerState: () => ({ running: workerRunning(), pollMs: cfg.pollMs }),
+});
 
 // PUBLIC login: the one write with no session, so it is origin-checked, then
 // rate limited per username — the control that actually stops password guessing
 // without letting one noisy client lock out a shared clinic address.
-const loginLimiter = rateLimit({ name: 'login-username', windowMs: 60_000, max: 10, key: 'username' });
+const loginLimiter = rateLimit({ name: 'login-username', windowMs: 60_000, max: cfg.rateLimit.loginPerMinute, key: 'username' });
 app.post('/api/login', originCheck, loginLimiter, login);
 
 app.use('/api', requireLogin);
@@ -110,7 +141,7 @@ try {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(cfg.port, '127.0.0.1', () => {
+const server = app.listen(cfg.port, '127.0.0.1', () => {
   console.log(`listening on 127.0.0.1:${cfg.port}`);
   console.log(JSON.stringify({
     ts: new Date().toISOString(), src: 'server',
@@ -121,4 +152,15 @@ app.listen(cfg.port, '127.0.0.1', () => {
     event: 'clinical.mount_state', mounted: clinicalMounted, error: clinicalError,
   }));
   startWorker();
+});
+
+// SIGTERM/SIGINT drain instead of dropping in-flight work. Without this, a
+// restart during a write leaves the client with a reset connection and the
+// database with a transaction that may or may not have committed.
+installShutdown({
+  server,
+  stopWorker,
+  log: (event, fields) => console.log(JSON.stringify({
+    ts: new Date().toISOString(), src: 'server', event, ...fields,
+  })),
 });

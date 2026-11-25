@@ -20,6 +20,16 @@ export const cfg = Object.freeze({
   maxBackoffMs: num(process.env.INTEGRATION_MAX_BACKOFF_MS, 4000, 500, 120000),
   stuckAfterMs: num(process.env.INTEGRATION_STUCK_MS, 60000, 5000, 600000),
   devCors: process.env.DEV_CORS === 'true',
+  // Rate limits are deployment settings. Measured in Module 16: keyed by address,
+  // a clinic behind one NAT shares a single budget between every workstation, so
+  // the per-user limit is the one that shapes normal use and the address limit is
+  // only a flood net. Both are configurable so a deployment can raise them
+  // without editing code.
+  rateLimit: Object.freeze({
+    userPerMinute: num(process.env.RATE_LIMIT_USER_PER_MIN, 300, 10, 100000),
+    addressPerMinute: num(process.env.RATE_LIMIT_ADDRESS_PER_MIN, 3000, 10, 1000000),
+    loginPerMinute: num(process.env.RATE_LIMIT_LOGIN_PER_MIN, 10, 2, 1000),
+  }),
   alertRole: 'doctor',
   sessionAge: 8 * 60 * 60 * 1000,
 });
