@@ -1,0 +1,56 @@
+{
+  "capturedAt": "2026-11-25T15:39:46.099Z",
+  "app": "http://localhost:3400/app/",
+  "widths": [
+    1280,
+    380
+  ],
+  "note": "The loading state was captured with CDP network throttling (400 ms latency, 50 KB/s) because on loopback it lasts a few milliseconds. Every other capture is at full speed.",
+  "captures": [
+    {
+      "file": "16-02-worklist-1280.png",
+      "state": "success (worklist)",
+      "width": 1280
+    },
+    {
+      "file": "16-03-board-1280.png",
+      "state": "success (board)",
+      "width": 1280
+    },
+    {
+      "file": "16-04-board-380.png",
+      "state": "responsive (board)",
+      "width": 380
+    },
+    {
+      "file": "16-01-loading-throttled.png",
+      "state": "loading",
+      "width": 380,
+      "throttle": "1200 ms latency, 30 KB/s",
+      "note": "throttled through CDP so a millisecond-scale wait becomes observable"
+    },
+    {
+      "file": "16-05-record-380.png",
+      "state": "responsive (record)",
+      "width": 380
+    },
+    {
+      "file": "16-06-record-1280.png",
+      "state": "success (record)",
+      "width": 1280
+    },
+    {
+      "file": "16-07-failure.png",
+      "state": "failure",
+      "banner": [
+        "Cannot reach the clinic server. Check that the backend is running, then try again."
+      ],
+      "width": 1280
+    },
+    {
+      "file": "16-08-signin-380.png",
+      "state": "success (sign-in)",
+      "width": 380
+    }
+  ]
+}
