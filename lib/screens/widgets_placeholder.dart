@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/clinic_api.dart';
-import 'settings_screen.dart';
+import '../app_routes.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key, required this.onSignOut});
@@ -25,9 +25,8 @@ class MoreScreen extends StatelessWidget {
           title: const Text('Server & session'),
           subtitle: Text(api.baseUrl),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-          ),
+          onTap: () =>
+              Navigator.of(context).pushNamed(AppRoutes.settings),
         ),
         const Divider(),
         ListTile(

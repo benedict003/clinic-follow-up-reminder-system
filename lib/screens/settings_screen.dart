@@ -1,9 +1,8 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 
-import 'secure_exchange_screen.dart';
-
 import '../api/clinic_api.dart';
+import '../app_routes.dart';
 import '../config/app_config.dart';
 import '../widgets/ui.dart';
 
@@ -138,11 +137,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text('Secure exchange'),
           subtitle: const Text('Seal a minimised record and send it to the partner'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const SecureExchangeScreen(),
-            ),
-          ),
+          // Named: on web this becomes /#/secure-exchange, so the browser's
+          // own back button pops it instead of leaving a dead page.
+          onTap: () =>
+              Navigator.of(context).pushNamed(AppRoutes.secureExchange),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
