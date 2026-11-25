@@ -239,7 +239,7 @@ body.push(screenshot('15-08-rate-limited.png', { captionText: '15-08 Hardening i
 
 // ── 7. defect register ────────────────────────────────────────────────────
 body.push(h('7. Defect register', 1));
-body.push(p('Ten defects. Two were introduced by earlier modules and only surfaced when this module exercised every path; three were found by taking the screenshots rather than by writing a test. Reproduction, cause, fix and retest for each are in docs/lab/module15/DEFECTS.md.'));
+body.push(p('Eleven defects. Two were introduced by earlier modules and only surfaced when this module exercised every path; three were found by taking the screenshots rather than by writing a test, and the last was found by opening the generated documents in Word — which is the application they are for. Reproduction, cause, fix and retest for each are in docs/lab/module15/DEFECTS.md.'));
 body.push(table([
   ['ID', 'Defect', 'Found by', 'Severity', 'Status'],
   ['D-01', 'Login latency disclosed which usernames exist (37 ms gap)', 'S4', 'Medium \u2014 disclosure', 'Fixed, retested'],
@@ -252,6 +252,7 @@ body.push(table([
   ['D-08', 'Tabs drew two title bars', 'Screenshots', 'Low \u2014 reads as broken', 'Fixed, recaptured'],
   ['D-09', 'Failure banner printed a ClientException and an internal path', '15-07 capture', 'Medium \u2014 usability, disclosure', 'Fixed, recaptured'],
   ['D-10', 'Access log recorded router-trimmed paths', 'Reading the run log', 'Low \u2014 correlation quality', 'Fixed, third run'],
+  ['D-11', 'Generated documents refused by Word (undeclared wp: namespace)', 'Opening for submission', 'High — unreadable deliverable', 'Fixed, opened in Word'],
 ], [520, 3600, 1500, 1900, 1830], { size: 13 }));
 body.push(p('Table 7.1 \u2014 Defect register. The two marked pre-existing were live in the build submitted for Module 14.'));
 
@@ -334,7 +335,11 @@ const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" '
   + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
   + 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
-  + 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">'
+  + 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" '
+  + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+  + 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+  + 'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" '
+  + 'mc:Ignorable="w14">'
   + `<w:body>${body.join('')}`
   + '<w:sectPr><w:pgSz w:h="15840" w:w="12240" w:orient="portrait"/>'
   + '<w:pgMar w:bottom="1440" w:top="1440" w:left="1440" w:right="1440" w:header="720" w:footer="720"/>'
