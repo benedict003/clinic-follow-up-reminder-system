@@ -1,15 +1,55 @@
-# Clinic Follow-Up Reminder System: Module 13
+# Clinic Follow-Up Reminder System
 
-A bounded automation workflow for the clinic follow-up register. When staff queue a reminder, a durable job re-validates the follow-up, calls a local mock notification gateway, records one auditable attempt, and either marks the follow-up as reminded or escalates it to the doctor role.
+A clinical follow-up register for a university clinic: schedule a follow-up, work a
+daily board of who is late and who is due, record what happened, and disclose the
+minimum a partner needs over an encrypted channel. Node.js + Express on the back,
+Flutter Web on the front, everything on loopback with fictional data.
 
-- **Backend:** Node.js, Express 5 (ESM), MySQL
-- **Client:** Flutter Web
-- **Everything is local:** no real provider, no credentials, fictional data only
+- **Backend:** Node.js, Express 5 (ESM), MySQL/MariaDB
+- **Client:** Flutter Web (release build served same-origin at `/app/`)
+- **Nothing real:** no provider, no live credential, fictional patients only
+
+## Modules
+
+| Module | What it adds | Folder | Tag |
+| --- | --- | --- | --- |
+| 13 | Durable reminder queue: enqueue, retry, escalate, audit every attempt | `docs/lab/module13/` | `module13` |
+| 14 | Secure exchange: a minimised record sealed for one partner, with a receipt | `docs/lab/module14/` | `module14` |
+| 15 | Integration testing and security hardening of everything above | `Module15/`, `docs/lab/module15/` | `module15` |
+
+Each module folder holds three documents: the report, the evidence portfolio and
+an operational manual. The working evidence (runs, captures, logs) lives under
+`docs/lab/moduleNN/evidence/`.
+
+### Module 15 at a glance
+
+| | Result |
+| --- | --- |
+| Collection | `backend/tests/m15-collection.js` — 37 cases, 9 topics |
+| Baseline | 23/36 passed, failures kept unedited in `docs/lab/module15/evidence/01-baseline/` |
+| Hardened | 37/37 passed, zero regressions |
+| Defects | 11 recorded in `docs/lab/module15/DEFECTS.md`, two of them pre-existing from Module 14 |
+| Flutter tests | 20 (`flutter test`) |
+
+Run it, then read `Module15/Module 15-operational-manual.docx` if something does not
+behave as described:
+
+```powershell
+cd backend
+node --env-file=.env tests/m15-collection.js --label 04-review
+# expected: 37/37 passed, 0 failed
+# evidence is written to ../docs/lab/module15/evidence/04-review/
+```
+
+The collection creates and drops its own database (`clinic_followup_m15`) and its
+own API process, so it never touches `clinic_followup_lab` and can run while the
+app is serving a demonstration.
 
 ---
 
-## 1. Bounds and roles
+The sections below describe the Module 13 workflow that the later modules build on.
 
+## 1. Bounds and roles
 ### Bounds
 
 | Setting | Default | Environment key |
@@ -46,32 +86,46 @@ The role gate is enforced server-side. The UI hides the controls as well, but hi
 
 ```text
 backend/
-  server.js                middleware order, dev CORS switch, static /app, worker start
+  server.js                middleware order, static /app, guarded imports, worker start
   routes.js                login, session, follow-ups, reminder-jobs
-  service.js               enqueue, claim, re-validate, classify, commit, escalate, retry, ymd()
+  clinical.js              Module 15: board, record, contact, reschedule, close, worklist
+  security.js              Module 15: correlation id, error contract, headers, rate limit
+  service.js               enqueue, claim, re-validate, classify, commit, escalate, retry
   worker.js                polled single-attempt worker, gateway call, structured log
-  auth.js                  scrypt hashing, sessions, CSRF, origin check, role gate
+  auth.js                  scrypt hashing, sessions, CSRF, origin check, role gate, dummy hash
   db.js                    connection pool with dateStrings, transaction helper
   config.js                bounded settings, loopback endpoint assertion
-  schema.sql               seven tables
-  schema-14.sql            optional, Module 14 tables
+  schema.sql               Module 13 tables
+  schema-14.sql            Module 14 exchange metadata (no plaintext, no keys)
+  schema-clinic.sql        Module 15 clinical columns and follow_up_events
   .env.example             nonsecret values only
+  .env.receiver.example    nonsecret, for the Module 14 partner receiver
+  crypto/                  envelope seal/open, key loading, recordRef
+  secure/                  Module 14 routes and the sealing sender
   scripts/
     mock-gateway.js        mode-switchable gateway on 4699
     seed.js                fictional users and patients
+    migrate-clinic.js      applies schema-clinic.sql (npm run migrate:clinic)
+    partner-receiver.js    Module 14 receiver on 4443
+    secure-keys.js         generates the Module 14 key material
     lab-sql.js             one-query evidence helper
-  public/app/              Flutter release build, served same-origin
+  tests/
+    m15-collection.js      Module 15: 37-case integration collection
+  public/app/              Flutter release build, served same-origin (not tracked)
 lib/
-  main.dart                session resume, decides login or shell
+  main.dart                routes table, session resume, 401 unwind, error widget
+  app_routes.dart          named routes so browser history matches the screens
   api/clinic_api.dart      login, resume, signOut, public request()
+  api/clinical_api.dart    board, record, contact, reschedule, close, patients, meta
   api/reminder_api.dart    jobs, detail, enqueue, retry, acknowledge, follow-ups
-  api/client_factory.dart  conditional export
-  api/client_web.dart      BrowserClient withCredentials = true
-  api/client_io.dart       plain http.Client
-  screens/                 login, overview, follow-ups, reminders, detail, settings, shell
+  api/secure_api.dart      Module 14 preview, send, history
+  models/clinical.dart     typed follow-up, patient, event, worklist models
+  screens/                 login, overview, board, record, patients, reminders, settings
+  widgets/clinical.dart    due badge, status pill, follow-up card, future guard
   theme/app_theme.dart     palette and Material 3 theme
-  widgets/ui.dart          shared states, app bar, status chip
-docs/lab/module13/         lab log, design records, evidence, screenshots
+Module13/ Module14/ Module15/   report, evidence portfolio, operational manual per module
+docs/lab/module13|14|15/  lab log, design records, evidence, captures
+test/                      screen layout, model contracts, sign-in form
 ```
 
 ### Tables
@@ -85,6 +139,9 @@ docs/lab/module13/         lab log, design records, evidence, screenshots
 | `reminder_jobs` | durable queue: state, attempts, correlation id, idempotency key |
 | `reminder_attempts` | insert-only audit trail, one row per call and per human action |
 | `reminder_alerts` | role-addressed, unread while `read_at IS NULL` |
+| `secure_outbox` | Module 14: metadata and a payload hash, never plaintext |
+| `secure_inbox` | Module 14: what the receiver accepted, one row per message id |
+| `follow_up_events` | Module 15: append-only clinical audit trail, actor snapshot per row |
 
 ### Ports
 
@@ -150,7 +207,16 @@ mysql -u root -p clinic_followup_lab < backend/schema.sql
 mysql -u root -p -e "SHOW TABLES;" clinic_followup_lab
 ```
 
-The last command must list exactly **seven** tables. On MySQL 8.4 or later you may need `--default-auth=mysql_native_password` for an older client; if `CREATE USER` was never run, `root` over a local socket is usually fine.
+Module 13 installs the seven base tables. The later modules add their own files, and
+both are safe to run more than once:
+
+```bash
+mysql -u root -p clinic_followup_lab < backend/schema-14.sql       # exchange metadata
+cd backend && npm run migrate:clinic                               # clinical columns + audit trail
+```
+
+After all three, `SHOW TABLES` lists ten: the seven base tables plus `secure_outbox`,
+`secure_inbox` and `follow_up_events`. On MySQL 8.4 or later you may need `--default-auth=mysql_native_password` for an older client; if `CREATE USER` was never run, `root` over a local socket is usually fine.
 
 Confirm the engine and mode, because the code depends on both:
 
@@ -342,3 +408,44 @@ flutter run -d chrome --web-port=8080
 ```
 
 Open <http://localhost:8080>. Captures from this origin show a debug banner and rely on relaxed CORS, so redo any submitted screenshot from the same-origin build.
+
+---
+
+## 6. Tests
+
+Two independent suites. Neither needs a running server, and neither writes outside
+its own database or a temporary directory.
+
+| Suite | Command | Cases |
+| --- | --- | --- |
+| Integration collection | `cd backend && node --env-file=.env tests/m15-collection.js --label 04-review` | 37 |
+| Flutter widget tests | `flutter test` | 20 |
+
+The collection owns `clinic_followup_m15` and ports 3411/4799. It drops the database at
+the start of every run, so a run is always from the same starting state. Failure
+injection is done with a stub gateway it starts itself, which is why "the dependency
+is down" is a repeatable condition rather than an anecdote.
+
+Static checks:
+
+```powershell
+flutter analyze          # expect only the project-wide material.dart deprecation notices
+node docs/lab/module15/validate-docx.js Module15/Module15.docx   # generated documents open in Word
+```
+
+## 7. Repository hygiene
+
+Nothing secret is tracked. `backend/.env`, `backend/.env.*`, `backend/keys/`, `backend/tls/`
+and `backend/public/app/` are ignored; only the two `.example` files are committed.
+
+```powershell
+# must print 0
+(git ls-files | Select-String ".pem$|.key$|backend/.env$|backend/keys/|backend/tls/").Count
+```
+
+Module 14 key material is generated locally, never committed:
+
+```powershell
+cd backend
+node scripts/secure-keys.js     # writes backend/keys/ and backend/tls/, both ignored
+```
