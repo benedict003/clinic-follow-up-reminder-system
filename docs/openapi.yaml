@@ -1,0 +1,1001 @@
+openapi: 3.1.0
+info:
+  title: Clinic Follow-Up Reminder System API
+  version: 1.0.0
+  summary: The HTTP interface of the clinic follow-up register, across Modules 13 to 16.
+  description: |
+    One Express application serves the Flutter Web client and this API from the
+    same origin, so the browser session cookie is first-party and no CORS
+    relaxation is needed in a normal deployment.
+
+    **Authentication.** `POST /api/login` returns a `cfr_session` cookie
+    (HttpOnly, SameSite=Lax) and a CSRF token in the body. Every write must send
+    that token as `X-CSRF-Token`; a read needs only the cookie. A missing session
+    answers `401 UNAUTHENTICATED`, never `403`, so an anonymous caller cannot infer
+    that a resource exists.
+
+    **Roles.** `doctor` and `nurse`. A nurse may read, record a contact attempt and
+    reschedule; only a doctor may close a follow-up or read the disclosure
+    history. Refusal is `403 FORBIDDEN_ROLE`, enforced on the server because hiding
+    a control in the interface is not a control.
+
+    **Errors.** Every failure has one shape: `{ error, code, requestId }`. `error`
+    is a sentence for a person, `code` is stable for a program, and `requestId`
+    matches the `X-Request-Id` response header and the server log line, so a
+    reported failure can be found without guessing.
+
+    **Probes.** `/api/health`, `/api/ready` and `/api/metrics` are never rate
+    limited. Liveness deliberately does no I/O; readiness does, because a failure
+    there means "do not send traffic" rather than "restart me".
+
+    **Rate limits.** Per signed-in user 300 requests/minute, per address 3000, per
+    username for login 10. All are configurable, and a clinic behind one NAT shares
+    only the address limit.
+  contact:
+    name: Maintainer
+    email: lliam.benedict@gmail.com
+  license:
+    name: Educational use — University of La Salette, College of Information Technology
+
+servers:
+  - url: http://localhost:3400
+    description: Lab deployment (loopback only, no TLS)
+  - url: http://127.0.0.1:3413
+    description: Module 16 performance harness instance
+
+tags:
+  - name: probes
+    description: Liveness, readiness and metrics. Untrusted-safe, never rate limited.
+  - name: session
+    description: Sign in, resume, sign out.
+  - name: clinical
+    description: The follow-up board, one record, and the clinical actions (Module 15).
+  - name: reminders
+    description: The durable reminder queue and its audit trail (Module 13).
+  - name: secure-exchange
+    description: Sealed disclosure of a minimised record to one partner (Module 14).
+  - name: legacy
+    description: The Module 13 follow-up endpoints, kept because the client and the queue use them.
+
+security:
+  - sessionCookie: []
+  - {}
+
+paths:
+  /api/health:
+    get:
+      tags: [probes]
+      summary: Liveness
+      description: Cheap and deliberately dependency-free. If this touched the database, a database blip would restart a healthy process.
+      security: []
+      responses:
+        '200':
+          description: The process is serving.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, service, time, uptimeSeconds]
+                properties:
+                  ok: { type: boolean, const: true }
+                  service: { type: string, example: clinic-follow-up-reminders }
+                  time: { type: string, format: date-time }
+                  uptimeSeconds: { type: integer }
+
+  /api/ready:
+    get:
+      tags: [probes]
+      summary: Readiness
+      description: |
+        Answers whether this process can serve a request that needs its
+        dependencies. A `503` here means take it out of rotation; it does **not**
+        mean restart it, because the fault is usually the database.
+      security: []
+      responses:
+        '200':
+          description: Ready.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Readiness' }
+        '503':
+          description: Not ready — one of the checks failed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Readiness' }
+
+  /api/metrics:
+    get:
+      tags: [probes]
+      summary: In-process metrics
+      description: Per-process and reset on restart. Answers "is it slower than an hour ago", not "what happened last week".
+      security: []
+      responses:
+        '200':
+          description: Counters and latency buckets.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Metrics' }
+
+  /api/login:
+    post:
+      tags: [session]
+      summary: Sign in
+      description: |
+        Origin-checked, then rate limited per username. A missing account costs the
+        same scrypt work as a wrong password, so latency does not reveal which
+        usernames exist.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, maxLength: 100 }
+                password: { type: string, maxLength: 200, format: password }
+      responses:
+        '200':
+          description: Signed in. Sets the session cookie.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: '`cfr_session=<64 hex>; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800` (plus `Secure` when served over TLS)'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, csrfToken]
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  csrfToken: { type: string, description: Send as `X-CSRF-Token` on every write }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/session:
+    get:
+      tags: [session]
+      summary: Resume the current session
+      responses:
+        '200':
+          description: The signed-in user and the CSRF token to use.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  csrfToken: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/logout:
+    post:
+      tags: [session]
+      summary: Sign out
+      description: Deletes the session row server-side, so a copied cookie stops working.
+      responses:
+        '200':
+          description: Signed out; the cookie is cleared.
+        '403': { $ref: '#/components/responses/CsrfRefused' }
+
+  /api/clinical/follow-ups:
+    get:
+      tags: [clinical]
+      summary: The follow-up board
+      parameters:
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [open, overdue, today, upcoming, closed]
+            default: open
+        - name: q
+          in: query
+          description: Matches patient name, patient id or the reason text.
+          schema: { type: string, maxLength: 120 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 200 }
+      responses:
+        '200':
+          description: Rows for the scope, plus counts for every scope.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scope, followUps, counts]
+                properties:
+                  scope: { type: string }
+                  followUps:
+                    type: array
+                    items: { $ref: '#/components/schemas/FollowUp' }
+                  counts: { $ref: '#/components/schemas/BoardCounts' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/clinical/follow-ups/{id}:
+    get:
+      tags: [clinical]
+      summary: One record with its history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The record, the patient, the append-only history and the automation trail.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [followUp, patient, events, jobs]
+                properties:
+                  followUp: { $ref: '#/components/schemas/FollowUp' }
+                  patient: { $ref: '#/components/schemas/Patient' }
+                  events:
+                    type: array
+                    items: { $ref: '#/components/schemas/FollowUpEvent' }
+                  jobs:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReminderJobSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/clinical/follow-ups/{id}/contact:
+    post:
+      tags: [clinical]
+      summary: Record a contact attempt
+      description: Only `reached` advances the record to `reminded`, because only `reached` means the patient was told.
+      parameters:
+        - $ref: '#/components/parameters/FollowUpId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome:
+                  type: string
+                  enum: [reached, no_answer, voicemail, wrong_number]
+                note: { type: string, maxLength: 400 }
+      responses:
+        '200':
+          description: The record after the attempt.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followUp: { $ref: '#/components/schemas/FollowUp' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: The record is already closed.
+
+  /api/clinical/follow-ups/{id}/reschedule:
+    post:
+      tags: [clinical]
+      summary: Move the due date
+      description: |
+        Bumps `version`, which is what makes an already-queued reminder obsolete
+        instead of chasing the patient twice.
+      parameters:
+        - $ref: '#/components/parameters/FollowUpId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dueDate]
+              properties:
+                dueDate: { type: string, format: date, example: '2026-12-05' }
+                note: { type: string, maxLength: 400 }
+      responses:
+        '200':
+          description: The record, and how many queued reminders were superseded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followUp: { $ref: '#/components/schemas/FollowUp' }
+                  supersededJobs: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Already closed, or already due on that date.
+
+  /api/clinical/follow-ups/{id}/close:
+    post:
+      tags: [clinical]
+      summary: Close a follow-up (doctor only)
+      description: The outcome is a clinical decision, so it is recorded with a reason and cannot be edited afterwards. `lost_to_follow_up` requires a note.
+      parameters:
+        - $ref: '#/components/parameters/FollowUpId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome:
+                  type: string
+                  enum: [attended, declined, referred, moved_away, lost_to_follow_up, not_indicated]
+                note: { type: string, maxLength: 400 }
+      responses:
+        '200':
+          description: The closed record.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followUp: { $ref: '#/components/schemas/FollowUp' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Already closed.
+
+  /api/clinical/follow-ups/{id}/note:
+    post:
+      tags: [clinical]
+      summary: Append a note to the record
+      parameters:
+        - $ref: '#/components/parameters/FollowUpId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: { type: string, maxLength: 400 }
+      responses:
+        '200':
+          description: Appended.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/clinical/worklist:
+    get:
+      tags: [clinical]
+      summary: The day's work
+      description: What a clinic opens first — who is late, who is due today, and what the automation needs a human for.
+      responses:
+        '200':
+          description: Counters plus the first few late and due-today records.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts: { $ref: '#/components/schemas/BoardCounts' }
+                  overdue:
+                    type: array
+                    items: { $ref: '#/components/schemas/FollowUp' }
+                  dueToday:
+                    type: array
+                    items: { $ref: '#/components/schemas/FollowUp' }
+                  today: { type: string, format: date }
+
+  /api/clinical/patients:
+    get:
+      tags: [clinical]
+      summary: Search the register
+      parameters:
+        - name: q
+          in: query
+          description: Name, id or contact number.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Up to 100 matching patients.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patients:
+                    type: array
+                    items: { $ref: '#/components/schemas/Patient' }
+    post:
+      tags: [clinical]
+      summary: Register a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, name, category]
+              properties:
+                id: { type: string, maxLength: 50, example: '2026-00042' }
+                name: { type: string, maxLength: 200 }
+                category:
+                  type: string
+                  enum: [student, employee]
+                contactNumber:
+                  type: string
+                  maxLength: 40
+                  description: For the clinic's own use. Never part of a disclosure.
+      responses:
+        '201':
+          description: Registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patient: { $ref: '#/components/schemas/Patient' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: That patient id already exists.
+
+  /api/clinical/meta:
+    get:
+      tags: [clinical]
+      summary: Clinical vocabulary
+      description: The contact and closure outcome lists, so the client does not hard-code clinical terms.
+      responses:
+        '200':
+          description: Labelled options and today's date.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contactOutcomes:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabelledOption' }
+                  closeOutcomes:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabelledOption' }
+                  today: { type: string, format: date }
+
+  /api/follow-ups:
+    get:
+      tags: [legacy]
+      summary: Follow-ups (Module 13 shape)
+      description: Kept because the Module 13 client and the reminder queue read it. `publicFollowUp()` returns camelCase, unlike the snake_case rows behind `history`.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, reminded, closed]
+        - name: limit
+          in: query
+          schema: { type: integer, maximum: 200, default: 100 }
+      responses:
+        '200':
+          description: Records in the Module 13 shape.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followUps: { type: array, items: { type: object } }
+    post:
+      tags: [legacy]
+      summary: Create a follow-up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId, dueDate, reason]
+              properties:
+                patientId: { type: string }
+                dueDate: { type: string, format: date }
+                reason: { type: string, maxLength: 300 }
+      responses:
+        '201':
+          description: Created.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/patients:
+    get:
+      tags: [legacy]
+      summary: Patient list (Module 13 shape)
+      responses:
+        '200':
+          description: Up to 200 patients.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patients: { type: array, items: { type: object } }
+
+  /api/reminder-jobs:
+    get:
+      tags: [reminders]
+      summary: List reminder jobs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [queued, running, succeeded, needs_human, obsolete]
+        - name: limit
+          in: query
+          schema: { type: integer, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Jobs with a status summary and, for a doctor, the unread alert count.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs: { type: array, items: { $ref: '#/components/schemas/ReminderJobSummary' } }
+                  counts: { type: object, additionalProperties: { type: integer } }
+                  unreadAlerts: { type: integer }
+    post:
+      tags: [reminders]
+      summary: Queue a reminder
+      description: |
+        Idempotent per `(followUpId, version)`: queueing the same follow-up twice
+        returns the existing job with `deduplicated: true` rather than creating a
+        second one. Only a `scheduled` follow-up that is due may be queued.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [followUpId]
+              properties:
+                followUpId: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: A new job.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job: { $ref: '#/components/schemas/ReminderJobSummary' }
+                  deduplicated: { type: boolean, const: false }
+        '200':
+          description: An existing job for the same follow-up and version.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job: { $ref: '#/components/schemas/ReminderJobSummary' }
+                  deduplicated: { type: boolean, const: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Not scheduled, or not yet due.
+
+  /api/reminder-jobs/{id}:
+    get:
+      tags: [reminders]
+      summary: One job with its attempts and alerts
+      description: Alerts are addressed to a role. A caller in another role receives an empty list rather than a filtered one, so the response cannot be used to infer that an alert exists.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The job, its attempts and the alerts visible to the caller.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job: { $ref: '#/components/schemas/ReminderJobSummary' }
+                  attempts: { type: array, items: { type: object } }
+                  alerts: { type: array, items: { type: object } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/reminder-jobs/{id}/retry:
+    post:
+      tags: [reminders]
+      summary: Retry an escalated job (doctor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 8, maxLength: 300, description: Why the retry is justified; kept on the attempt record }
+      responses:
+        '200':
+          description: Requeued; attempts extended by up to two, hard-capped at ten.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: The job is not in a retryable state.
+
+  /api/reminder-jobs/{id}/acknowledge:
+    post:
+      tags: [reminders]
+      summary: Acknowledge alerts for a job (doctor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Alerts marked read.
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/secure/keyinfo:
+    get:
+      tags: [secure-exchange]
+      summary: Which keys this process holds
+      description: Fingerprints only. The API needing the recipient's private key would be a design failure, so its presence is reported loudly rather than assumed.
+      responses:
+        '200':
+          description: Key ids and fingerprints, plus the fields a disclosure withholds.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keyId: { type: string }
+                  keys:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        present: { type: boolean }
+                        fingerprint: { type: [string, 'null'] }
+                  refKeyId: { type: string }
+                  withheld:
+                    type: array
+                    items: { type: string }
+                    example: [patient_name, patient_id, reason, created_by, contact_number]
+
+  /api/secure/preview/{followUpId}:
+    get:
+      tags: [secure-exchange]
+      summary: Preview the exact bytes that would leave
+      description: Read-only and already minimised, so a nurse may preview what would be disclosed.
+      parameters:
+        - $ref: '#/components/parameters/FollowUpId'
+      responses:
+        '200':
+          description: The minimised record, its byte count and the withheld fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followUpId: { type: integer }
+                  fields:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        value: { type: string }
+                  withheld: { type: array, items: { type: string } }
+                  plaintextBytes: { type: integer }
+                  disclosable: { type: boolean }
+                  status: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/secure/send/{followUpId}:
+    post:
+      tags: [secure-exchange]
+      summary: Seal and send (doctor only)
+      description: |
+        Seals with AES-256-GCM, wraps the data key with RSA-OAEP-SHA256, signs with
+        Ed25519, and posts over pinned TLS. A `200` with a receipt is the only
+        evidence of acceptance; the receipt contains no payload.
+      parameters:
+        - $ref: '#/components/parameters/FollowUpId'
+      responses:
+        '200':
+          description: Delivered, with a receipt.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExchangeResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: 'The record is not disclosable. Code `FOLLOW_UP_NOT_DISCLOSABLE`.'
+        '410':
+          description: 'The envelope expired before it was accepted. Code `ENVELOPE_EXPIRED`.'
+        '422':
+          description: 'The receiver refused it — signature, audience or AEAD tag. The code names which.'
+        '502':
+          description: The partner could not be reached.
+
+  /api/secure/messages:
+    get:
+      tags: [secure-exchange]
+      summary: Disclosure history (doctor only)
+      description: Metadata and a payload hash. No plaintext, no ciphertext, no key material.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, maximum: 100, default: 25 }
+      responses:
+        '200':
+          description: Outbox rows.
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: cfr_session
+      description: Opaque 64-hex session token. Writes additionally need `X-CSRF-Token`.
+
+  parameters:
+    FollowUpId:
+      name: id
+      in: path
+      required: true
+      description: Positive integer. A non-numeric value answers `400 INVALID_PARAMETER` rather than reaching the database.
+      schema: { type: integer, minimum: 1 }
+
+  responses:
+    BadRequest:
+      description: The request was malformed or failed validation.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            validation:
+              value: { error: 'dueDate must be YYYY-MM-DD.', code: 'BAD_REQUEST', requestId: 'b0b55980-1271-4092-84e2-dc946a967e15' }
+            malformedJson:
+              value: { error: 'The request body is not valid JSON.', code: 'MALFORMED_JSON', requestId: '6dfb156f-7ccb-4bd0-89fa-86e3f36706df' }
+    Unauthorized:
+      description: No session, or a session that has been revoked.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: 'Sign in to continue.', code: 'UNAUTHENTICATED', requestId: '01da4e76-bc08-4924-b56e-af43467d5eda' }
+    Forbidden:
+      description: Authenticated but not permitted, or a write without a valid CSRF token.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            role:
+              value: { error: 'Only a doctor can close a follow-up.', code: 'FORBIDDEN_ROLE', requestId: '01da4e76-bc08-4924-b56e-af43467d5eda' }
+            csrf:
+              value: { error: 'Your session is stale. Reload the page and try again.', code: 'CSRF_INVALID', requestId: '9f2c1a44-2b1e-4a77-9f2c-1a442b1e4a77' }
+    CsrfRefused:
+      description: The CSRF token was missing or did not match the session.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: The record or route does not exist. Unknown routes answer in the same shape.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: '"abc" is not a follow-up id.', code: 'INVALID_PARAMETER', requestId: 'b0b55980-1271-4092-84e2-dc946a967e15' }
+    RateLimited:
+      description: A limit was exceeded. Probes are exempt.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Seconds until the window resets.
+        RateLimit-Remaining:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: 'Too many attempts. Try again in a moment.', code: 'RATE_LIMITED', requestId: '5694e8a2-22c0-4157-88b5-ee687b2e70c8' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error, code, requestId]
+      properties:
+        error:
+          type: string
+          description: A sentence for a person. Deliberately contains no exception text, stack or internal path.
+        code:
+          type: string
+          description: Stable machine-readable code, e.g. UNAUTHENTICATED, FORBIDDEN_ROLE, CSRF_INVALID, INVALID_PARAMETER, MALFORMED_JSON, BODY_TOO_LARGE, RATE_LIMITED, FOLLOW_UP_NOT_DISCLOSABLE, INTERNAL_ERROR.
+        requestId:
+          type: string
+          description: Matches the X-Request-Id response header and the server log line.
+
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [doctor, nurse] }
+
+    FollowUp:
+      type: object
+      properties:
+        id: { type: integer }
+        patientId: { type: string }
+        patientName: { type: string }
+        patientCategory: { type: string, enum: [student, employee] }
+        contactNumber: { type: [string, 'null'] }
+        dueDate: { type: string, format: date }
+        reason: { type: string }
+        status: { type: string, enum: [scheduled, reminded, closed] }
+        version: { type: integer, description: Increments on reschedule; makes queued reminders obsolete }
+        daysFromToday: { type: integer, description: Negative when overdue. Derived, never stored }
+        overdue: { type: boolean }
+        dueToday: { type: boolean }
+        contactAttempts: { type: integer }
+        closedAt: { type: [string, 'null'] }
+        closeOutcome: { type: [string, 'null'] }
+        closeNote: { type: [string, 'null'] }
+        actions:
+          type: object
+          description: What the caller may do next, so a client never offers an action the server would refuse.
+          properties:
+            canContact: { type: boolean }
+            canReschedule: { type: boolean }
+            canClose: { type: boolean }
+            canQueueReminder: { type: boolean }
+
+    Patient:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string, enum: [student, employee] }
+        contactNumber: { type: [string, 'null'] }
+        birthDate: { type: [string, 'null'], format: date }
+        openFollowUps: { type: integer }
+
+    FollowUpEvent:
+      type: object
+      description: One row of the append-only clinical audit trail. Actor details are snapshotted, so history does not change when a user is renamed.
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [scheduled, contacted, rescheduled, closed, note] }
+        outcome: { type: [string, 'null'] }
+        note: { type: [string, 'null'] }
+        fromDue: { type: [string, 'null'], format: date }
+        toDue: { type: [string, 'null'], format: date }
+        actorName: { type: [string, 'null'] }
+        actorRole: { type: [string, 'null'] }
+        createdAt: { type: string }
+
+    BoardCounts:
+      type: object
+      properties:
+        overdue: { type: integer }
+        dueToday: { type: integer }
+        upcoming: { type: integer }
+        open: { type: integer }
+        closed: { type: integer }
+        needsHuman: { type: integer }
+        contactsToday: { type: integer }
+        unreadAlerts: { type: integer }
+
+    ReminderJobSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string }
+        followUpId: { type: integer }
+        followUpVersion: { type: integer }
+        status: { type: string, enum: [queued, running, succeeded, needs_human, obsolete] }
+        attempts: { type: integer }
+        maxAttempts: { type: integer }
+        correlationId: { type: string }
+        nextRunAt: { type: integer, description: Epoch milliseconds }
+        lastErrorCode: { type: [string, 'null'] }
+        lastErrorText: { type: [string, 'null'] }
+
+    ExchangeResult:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: integer }
+        record:
+          type: object
+          description: The minimised record that was sealed.
+        envelope:
+          type: object
+          description: Metadata only — algorithms, key id, byte counts, payload hash, validity window.
+        receipt:
+          type: [object, 'null']
+          description: Present only on acceptance. Carries no payload.
+        error:
+          type: [object, 'null']
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+    LabelledOption:
+      type: object
+      properties:
+        value: { type: string }
+        label: { type: string }
+
+    Readiness:
+      type: object
+      properties:
+        ready: { type: boolean }
+        checks:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                ok: { type: boolean }
+                ms: { type: string }
+                error: { type: string }
+            routes:
+              type: object
+              description: Which optional modules survived their guarded import. `false` means half-deployed, not ready.
+              properties:
+                secure: { type: boolean }
+                clinical: { type: boolean }
+            worker:
+              type: object
+              description: A process with no worker serves reads and never delivers a reminder.
+              properties:
+                running: { type: boolean }
+                pollMs: { type: integer }
+        pool:
+          type: object
+          properties:
+            size: { type: [integer, 'null'] }
+            free: { type: [integer, 'null'] }
+            queueing: { type: [integer, 'null'], description: Non-zero means requests are waiting for a connection }
+            limit: { type: [integer, 'null'] }
+        uptimeSeconds: { type: integer }
+        build: { type: string, description: '`BUILD_ID`, so a deploy can be confirmed by asking the process' }
+
+    Metrics:
+      type: object
+      properties:
+        uptimeSeconds: { type: integer }
+        requests: { type: integer }
+        byStatus: { type: object, additionalProperties: { type: integer } }
+        byPath: { type: object, additionalProperties: { type: integer }, description: Paths are collapsed to their route shape so the map cannot grow without bound }
+        latency:
+          type: object
+          properties:
+            sumMs: { type: integer }
+            maxMs: { type: integer }
+            meanMs: { type: [number, 'null'] }
+            cumulativePercentByBucket: { type: object, additionalProperties: { type: number } }
+        worker:
+          type: object
+          properties:
+            attempts: { type: integer }
+            failures: { type: integer }
+            lastAttemptAt: { type: [string, 'null'] }
+        dbErrors: { type: integer }
+        pool: { type: object }
+        memoryMb: { type: integer }

@@ -7,7 +7,11 @@
     "seed": "node --env-file=.env scripts/seed.js",
     "mock": "node scripts/mock-gateway.js",
     "migrate": "node migrate.js",
-    "migrate:clinic": "node --env-file=.env scripts/migrate-clinic.js"
+    "migrate:clinic": "node --env-file=.env scripts/migrate-clinic.js",
+    "test:api": "node --env-file=.env tests/m15-collection.js --label 09-review",
+    "test:perf": "node --env-file=.env tests/m16-perf.js --phase full --label 09-review",
+    "test:rollback": "node --env-file=.env tests/m16-rollback.js",
+    "test:uat": "node --env-file=.env tests/m17-uat.js --label 09-review"
   },
   "dependencies": {
     "express": "^5.1.0",
