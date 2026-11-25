@@ -1,5 +1,8 @@
 node_modules/
 backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.receiver.example
 backend/public/app/
 build/
 .dart_tool/
