@@ -6,7 +6,8 @@
     "start": "node --env-file=.env server.js",
     "seed": "node --env-file=.env scripts/seed.js",
     "mock": "node scripts/mock-gateway.js",
-    "migrate": "node migrate.js"
+    "migrate": "node migrate.js",
+    "migrate:clinic": "node --env-file=.env scripts/migrate-clinic.js"
   },
   "dependencies": {
     "express": "^5.1.0",
