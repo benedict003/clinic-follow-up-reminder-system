@@ -81,12 +81,18 @@ class ClinicApi {
           .timeout(AppConfig.requestTimeout);
       return _decode(res);
     } on TimeoutException {
-      throw ApiException('$baseUrl did not answer within '
-          '${AppConfig.requestTimeout.inSeconds}s. Is the backend running?');
+      debugPrint('request timeout: $method $path');
+      throw ApiException('The server did not answer within '
+          '${AppConfig.requestTimeout.inSeconds} seconds. Check that it is running, then try again.');
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('Cannot reach $baseUrl\n$e');
+      // The message a clinician reads must say what to do. The exception text
+      // (ClientException, uri=..., stack) goes to the debug console instead:
+      // it is noise on screen and it names the internal host and API paths.
+      debugPrint('request failed: $method $path -> $e');
+      throw ApiException('Cannot reach the clinic server. Check that the '
+          'backend is running, then try again.');
     }
   }
 
