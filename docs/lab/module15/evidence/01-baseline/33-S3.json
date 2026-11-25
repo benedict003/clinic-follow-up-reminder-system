@@ -1,0 +1,20 @@
+{
+  "id": "S3",
+  "label": "01-baseline",
+  "topic": "hardening",
+  "title": "Repeated failed logins are rate limited",
+  "startedAt": "2026-11-25T13:32:24.264Z",
+  "expected": {
+    "limited": true,
+    "status": 429,
+    "hasRetryAfter": true
+  },
+  "actual": {
+    "limited": false,
+    "status": 401,
+    "hasRetryAfter": false
+  },
+  "pass": false,
+  "ms": 1,
+  "note": "status sequence 401,401,401,401,401,401,401,401,401,401,401,401"
+}

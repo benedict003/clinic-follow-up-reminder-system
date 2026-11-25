@@ -24,8 +24,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
     _future = ReminderApi.instance.jobs();
   }
 
-  void _reload() =>
-      setState(() => _future = ReminderApi.instance.jobs(status: _filter));
+  void _reload() {
+    final Future<Map<String, dynamic>> future =
+        ReminderApi.instance.jobs(status: _filter);
+    setState(() {
+      _future = future;
+    });
+  }
 
   static String _label(String s) => s
       .split('_')
@@ -36,35 +41,45 @@ class _RemindersScreenState extends State<RemindersScreen> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width >= 720;
 
+    // No AppBar: this is a tab inside HomeShell, which owns the title bar. The
+    // queue and refresh actions sit beside the filters instead.
     return Scaffold(
-      appBar: appBar('Reminder jobs', actions: [
-        IconButton(
-          tooltip: 'Queue a due follow-up',
-          icon: const Icon(Icons.add),
-          onPressed: _openQueue,
-        ),
-        IconButton(tooltip: 'Refresh', icon: const Icon(Icons.refresh), onPressed: _reload),
-      ]),
       body: Column(
         children: [
           SizedBox(
             height: 52,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
               children: [
-                for (final f in _filters)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(f.isEmpty ? 'All' : _label(f)),
-                      selected: _filter == f,
-                      onSelected: (_) {
-                        _filter = f;
-                        _reload();
-                      },
-                    ),
+                Expanded(
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    children: [
+                      for (final f in _filters)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(f.isEmpty ? 'All' : _label(f)),
+                            selected: _filter == f,
+                            onSelected: (_) {
+                              _filter = f;
+                              _reload();
+                            },
+                          ),
+                        ),
+                    ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Queue a due follow-up',
+                  icon: const Icon(Icons.add),
+                  onPressed: _openQueue,
+                ),
+                IconButton(
+                  tooltip: 'Refresh',
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _reload,
+                ),
               ],
             ),
           ),
@@ -184,7 +199,12 @@ class _ReminderDetailPaneState extends State<ReminderDetailPane> {
     _future = ReminderApi.instance.job(widget.jobId);
   }
 
-  void _reload() => setState(() => _future = ReminderApi.instance.job(widget.jobId));
+  void _reload() {
+    final Future<Map<String, dynamic>> future = ReminderApi.instance.job(widget.jobId);
+    setState(() {
+      _future = future;
+    });
+  }
 
   Future<void> _retry() async {
     final reason = await showDialog<String>(

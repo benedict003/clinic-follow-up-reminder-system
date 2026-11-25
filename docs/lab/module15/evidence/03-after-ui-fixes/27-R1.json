@@ -1,0 +1,20 @@
+{
+  "id": "R1",
+  "label": "03-after-ui-fixes",
+  "topic": "reliability",
+  "title": "A 503 from the gateway is retried to the limit, then escalated",
+  "startedAt": "2026-11-25T14:21:21.552Z",
+  "expected": {
+    "status": "needs_human",
+    "attempts": 3,
+    "boundedByMaxAttempts": true
+  },
+  "actual": {
+    "status": "needs_human",
+    "attempts": 3,
+    "boundedByMaxAttempts": true
+  },
+  "pass": true,
+  "ms": 0,
+  "note": "job #2 correlation 1bcec2eca2d2b938f112772b2f24c43c"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "F1",
+  "label": "03-after-ui-fixes",
+  "topic": "contract",
+  "title": "Health endpoint answers before authentication",
+  "startedAt": "2026-11-25T14:21:21.227Z",
+  "expected": {
+    "status": 200,
+    "ok": true
+  },
+  "actual": {
+    "status": 200,
+    "ok": true
+  },
+  "pass": true,
+  "ms": 3
+}

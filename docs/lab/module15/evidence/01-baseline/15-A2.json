@@ -1,0 +1,15 @@
+{
+  "id": "A2",
+  "label": "01-baseline",
+  "topic": "authentication",
+  "title": "A forged session cookie is refused",
+  "startedAt": "2026-11-25T13:32:19.205Z",
+  "expected": {
+    "status": 401
+  },
+  "actual": {
+    "status": 401
+  },
+  "pass": true,
+  "ms": 1
+}

@@ -1,0 +1,15 @@
+{
+  "id": "S2",
+  "label": "03-after-ui-fixes",
+  "topic": "hardening",
+  "title": "An inbound correlation id is preserved for tracing",
+  "startedAt": "2026-11-25T14:21:26.940Z",
+  "expected": {
+    "echoed": "m15-trace-0123456789"
+  },
+  "actual": {
+    "echoed": "m15-trace-0123456789"
+  },
+  "pass": true,
+  "ms": 1
+}

@@ -1,0 +1,15 @@
+{
+  "id": "Z2",
+  "label": "03-after-ui-fixes",
+  "topic": "authorization",
+  "title": "A nurse may still record a contact attempt",
+  "startedAt": "2026-11-25T14:21:21.475Z",
+  "expected": {
+    "status": 200
+  },
+  "actual": {
+    "status": 200
+  },
+  "pass": true,
+  "ms": 5
+}

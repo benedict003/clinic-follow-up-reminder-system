@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../api/clinic_api.dart';
+import '../app_routes.dart';
 import '../config/app_config.dart';
 import '../theme/app_theme.dart';
-import 'settings_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onSignedIn});
@@ -160,8 +160,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 14),
                       TextButton.icon(
                         onPressed: () async {
-                          await Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => const SettingsScreen(embedded: true)));
+                          await Navigator.of(context)
+                              .pushNamed(AppRoutes.serverSetup);
                           if (mounted) setState(() {});
                         },
                         icon: const Icon(Icons.dns_outlined, size: 18, color: Colors.white70),

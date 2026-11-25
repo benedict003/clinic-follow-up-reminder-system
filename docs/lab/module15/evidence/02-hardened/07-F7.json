@@ -1,0 +1,19 @@
+{
+  "id": "F7",
+  "label": "02-hardened",
+  "topic": "functional",
+  "title": "Doctor closes a follow-up with an outcome",
+  "startedAt": "2026-11-25T13:41:01.641Z",
+  "expected": {
+    "status": 200,
+    "status_": "closed",
+    "outcome": "attended"
+  },
+  "actual": {
+    "status": 200,
+    "status_": "closed",
+    "outcome": "attended"
+  },
+  "pass": true,
+  "ms": 6
+}

@@ -1,0 +1,25 @@
+{
+  "id": "S1",
+  "label": "01-baseline",
+  "topic": "hardening",
+  "title": "Security headers are present on API responses",
+  "startedAt": "2026-11-25T13:32:24.260Z",
+  "expected": {
+    "nosniff": "nosniff",
+    "frame": "DENY",
+    "referrer": "no-referrer",
+    "csp": true,
+    "permissions": true,
+    "requestId": true
+  },
+  "actual": {
+    "nosniff": null,
+    "frame": null,
+    "referrer": null,
+    "csp": false,
+    "permissions": false,
+    "requestId": false
+  },
+  "pass": false,
+  "ms": 1
+}

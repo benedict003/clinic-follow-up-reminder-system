@@ -1,0 +1,15 @@
+{
+  "id": "A6",
+  "label": "02-hardened",
+  "topic": "authentication",
+  "title": "A session revoked server-side no longer authenticates",
+  "startedAt": "2026-11-25T13:41:01.685Z",
+  "expected": {
+    "status": 401
+  },
+  "actual": {
+    "status": 401
+  },
+  "pass": true,
+  "ms": 2
+}

@@ -1,0 +1,20 @@
+{
+  "id": "S4",
+  "label": "01-baseline",
+  "topic": "hardening",
+  "title": "Login timing does not reveal whether a username exists",
+  "startedAt": "2026-11-25T13:32:24.283Z",
+  "expected": {
+    "deltaUnderMs": 15,
+    "classification": "indistinguishable"
+  },
+  "actual": {
+    "deltaUnderMs": 37,
+    "classification": "distinguishable",
+    "realMedianMs": 39,
+    "ghostMedianMs": 2
+  },
+  "pass": false,
+  "ms": 41,
+  "note": "real 39/40/39/39/40 ms vs ghost 2/2/2/2/2 ms"
+}

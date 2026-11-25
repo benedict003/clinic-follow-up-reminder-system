@@ -1,0 +1,16 @@
+{
+  "id": "R3",
+  "label": "03-after-ui-fixes",
+  "topic": "reliability",
+  "title": "The same path succeeds once the gateway recovers",
+  "startedAt": "2026-11-25T14:21:26.608Z",
+  "expected": {
+    "status": "succeeded"
+  },
+  "actual": {
+    "status": "succeeded"
+  },
+  "pass": true,
+  "ms": 0,
+  "note": "job #4"
+}

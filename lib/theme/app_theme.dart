@@ -29,6 +29,11 @@ class AppTheme {
         elevation: 0,
         titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
       ),
+      // Size.fromHeight(48) means minWidth = infinity: the button stretches to
+      // its parent's width. That is intended in a Column, but inside a Row the
+      // width is unbounded and layout throws "BoxConstraints forces an infinite
+      // width". Any of these buttons placed in a Row must override minimumSize
+      // (see the Preview button in secure_exchange_screen.dart).
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(48),

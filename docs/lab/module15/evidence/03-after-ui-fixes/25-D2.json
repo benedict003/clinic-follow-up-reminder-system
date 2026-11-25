@@ -1,0 +1,15 @@
+{
+  "id": "D2",
+  "label": "03-after-ui-fixes",
+  "topic": "duplicate",
+  "title": "Closing the same follow-up twice returns 409",
+  "startedAt": "2026-11-25T14:21:21.545Z",
+  "expected": {
+    "status": 409
+  },
+  "actual": {
+    "status": 409
+  },
+  "pass": true,
+  "ms": 3
+}

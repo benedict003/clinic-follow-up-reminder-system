@@ -1,0 +1,15 @@
+{
+  "id": "V3",
+  "label": "02-hardened",
+  "topic": "invalid",
+  "title": "Rescheduling into the past is rejected",
+  "startedAt": "2026-11-25T13:41:01.655Z",
+  "expected": {
+    "status": 400
+  },
+  "actual": {
+    "status": 400
+  },
+  "pass": true,
+  "ms": 2
+}

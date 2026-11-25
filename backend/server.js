@@ -6,9 +6,23 @@ import { cfg } from './config.js';
 import { attachSession, csrfProtection, originCheck, requireLogin } from './auth.js';
 import { routes, login } from './routes.js';
 import { startWorker } from './worker.js';
+import {
+  requestContext, securityHeaders, rateLimit, errorHandler, notFoundHandler,
+} from './security.js';
 
 const app = express();
 app.disable('x-powered-by');
+
+// Module 15 controls, applied in this order on purpose:
+//   1. correlation id, so every later log line and error can be traced;
+//   2. security headers, so even an early rejection carries them;
+//   3. rate limits, before any handler does work.
+app.use(requestContext);
+app.use(securityHeaders);
+
+// Generous ceiling that exists to bound abuse, not to shape normal use: a single
+// clinician working the board stays far below it.
+app.use('/api', rateLimit({ name: 'api-burst', windowMs: 60_000, max: 300 }));
 
 if (cfg.devCors) {
   app.use((req, res, next) => {
@@ -48,8 +62,11 @@ app.get('/api/health', (_req, res) => res.json({
   uptimeSeconds: Math.round(process.uptime()),
 }));
 
-// PUBLIC login: the one write with no session, so it is origin-checked.
-app.post('/api/login', originCheck, login);
+// PUBLIC login: the one write with no session, so it is origin-checked, then
+// rate limited per username — the control that actually stops password guessing
+// without letting one noisy client lock out a shared clinic address.
+const loginLimiter = rateLimit({ name: 'login-username', windowMs: 60_000, max: 10, key: 'username' });
+app.post('/api/login', originCheck, loginLimiter, login);
 
 app.use('/api', requireLogin);
 app.use('/api', csrfProtection);
@@ -71,19 +88,37 @@ try {
   }));
 }
 
-app.use((_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));
+// Module 15: the clinical workflow. Same guards (session + CSRF) because it is
+// mounted after them, and the same guarded import so a workflow problem cannot
+// take the reminder queue or the exchange path down with it.
+let clinicalMounted = false;
+let clinicalError = null;
+try {
+  const { router: clinical } = await import('./clinical.js');
+  app.use('/api/clinical', clinical);
+  clinicalMounted = true;
+} catch (e) {
+  clinicalError = String(e?.message || e).slice(0, 200);
+  console.error(JSON.stringify({
+    ts: new Date().toISOString(), src: 'clinical',
+    event: 'clinical.mount_failed', message: clinicalError,
+  }));
+}
 
-app.use((err, _req, res, _next) => {
-  if (err && !err.status) console.error(err);
-  res.status(err?.status || 500)
-     .json({ error: err?.status ? err.message : 'The request could not be completed.' });
-});
+// Unknown paths go through the same error contract as everything else, so a
+// client never has to parse two different error shapes.
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(cfg.port, '127.0.0.1', () => {
   console.log(`listening on 127.0.0.1:${cfg.port}`);
   console.log(JSON.stringify({
     ts: new Date().toISOString(), src: 'server',
     event: 'secure.mount_state', mounted: secureMounted, error: secureError,
+  }));
+  console.log(JSON.stringify({
+    ts: new Date().toISOString(), src: 'server',
+    event: 'clinical.mount_state', mounted: clinicalMounted, error: clinicalError,
   }));
   startWorker();
 });

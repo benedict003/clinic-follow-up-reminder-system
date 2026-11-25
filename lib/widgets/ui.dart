@@ -1,6 +1,7 @@
 // lib/widgets/ui.dart
 import 'package:flutter/material.dart';
 
+import '../api/clinic_api.dart';
 import '../theme/app_theme.dart';
 
 
@@ -18,6 +19,17 @@ class ErrorView extends StatelessWidget {
   final Object error;
   final VoidCallback? onRetry;
 
+  /// Only an error the API layer wrote for a clinician is shown verbatim.
+  /// Anything else (a TypeError, a socket exception) is logged and replaced with
+  /// a sentence that says what to do: internal exception text on screen is noise
+  /// and can name hosts and endpoints.
+  String get _message {
+    if (error is ApiException) return '$error';
+    debugPrint('unhandled error shown to the user: $error');
+    return 'Something went wrong while loading this screen. Try again, and if it '
+        'keeps happening ask an administrator to check the server.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
@@ -27,7 +39,7 @@ class ErrorView extends StatelessWidget {
         const SizedBox(height: 48),
         Icon(Icons.cloud_off, size: 48, color: t.colorScheme.error),
         const SizedBox(height: 12),
-        Text('$error', textAlign: TextAlign.center, style: t.textTheme.bodyMedium),
+        Text(_message, textAlign: TextAlign.center, style: t.textTheme.bodyMedium),
         if (onRetry != null) ...[
           const SizedBox(height: 16),
           Center(
@@ -64,9 +76,13 @@ class EmptyView extends StatelessWidget {
 }
 
 void showError(BuildContext context, Object error) {
+  final String message = error is ApiException
+      ? '$error'
+      : 'Something went wrong. Try again.';
+  if (error is! ApiException) debugPrint('unhandled error in snackbar: $error');
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text('$error')));
+    ..showSnackBar(SnackBar(content: Text(message)));
 }
 
 String dash(Object? v) {

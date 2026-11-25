@@ -1,0 +1,17 @@
+{
+  "id": "Z1",
+  "label": "02-hardened",
+  "topic": "authorization",
+  "title": "A nurse cannot close a follow-up",
+  "startedAt": "2026-11-25T13:41:01.742Z",
+  "expected": {
+    "status": 403,
+    "code": "FORBIDDEN_ROLE"
+  },
+  "actual": {
+    "status": 403,
+    "code": "FORBIDDEN_ROLE"
+  },
+  "pass": true,
+  "ms": 3
+}

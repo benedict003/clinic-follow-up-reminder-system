@@ -1,0 +1,20 @@
+{
+  "id": "R2",
+  "label": "01-baseline",
+  "topic": "reliability",
+  "title": "A gateway that never answers times out and is bounded",
+  "startedAt": "2026-11-25T13:32:20.714Z",
+  "expected": {
+    "status": "needs_human",
+    "timedOut": true,
+    "attemptsWithinLimit": true
+  },
+  "actual": {
+    "status": "needs_human",
+    "timedOut": false,
+    "attemptsWithinLimit": true
+  },
+  "pass": false,
+  "ms": 0,
+  "note": "job #3; attempt codes 23,23,23"
+}

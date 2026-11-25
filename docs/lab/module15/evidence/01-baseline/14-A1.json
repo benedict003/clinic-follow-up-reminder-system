@@ -1,0 +1,17 @@
+{
+  "id": "A1",
+  "label": "01-baseline",
+  "topic": "authentication",
+  "title": "No session is refused on a protected route",
+  "startedAt": "2026-11-25T13:32:19.203Z",
+  "expected": {
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  "actual": {
+    "status": 401,
+    "code": null
+  },
+  "pass": false,
+  "ms": 1
+}

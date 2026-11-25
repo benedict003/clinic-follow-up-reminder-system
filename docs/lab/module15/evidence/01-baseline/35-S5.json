@@ -1,0 +1,21 @@
+{
+  "id": "S5",
+  "label": "01-baseline",
+  "topic": "hardening",
+  "title": "A server-side failure returns a safe error without internals",
+  "startedAt": "2026-11-25T13:32:24.490Z",
+  "expected": {
+    "status": 500,
+    "code": "INTERNAL_ERROR",
+    "hasRequestId": true,
+    "leaksSql": false
+  },
+  "actual": {
+    "status": 400,
+    "code": null,
+    "hasRequestId": false,
+    "leaksSql": false
+  },
+  "pass": false,
+  "ms": 3
+}

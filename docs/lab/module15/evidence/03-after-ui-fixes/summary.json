@@ -1,0 +1,741 @@
+{
+  "label": "03-after-ui-fixes",
+  "ranAt": "2026-11-25T14:21:28.248Z",
+  "build": {
+    "node": "v26.13.1",
+    "platform": "win32 x64"
+  },
+  "database": "clinic_followup_m15",
+  "api": "http://127.0.0.1:3411",
+  "stub": "http://127.0.0.1:4799/notify",
+  "total": 37,
+  "passed": 37,
+  "failed": 0,
+  "byTopic": {
+    "contract": {
+      "total": 3,
+      "passed": 3
+    },
+    "authentication": {
+      "total": 7,
+      "passed": 7
+    },
+    "functional": {
+      "total": 3,
+      "passed": 3
+    },
+    "invalid": {
+      "total": 6,
+      "passed": 6
+    },
+    "authorization": {
+      "total": 3,
+      "passed": 3
+    },
+    "not-found": {
+      "total": 2,
+      "passed": 2
+    },
+    "duplicate": {
+      "total": 3,
+      "passed": 3
+    },
+    "reliability": {
+      "total": 3,
+      "passed": 3
+    },
+    "hardening": {
+      "total": 7,
+      "passed": 7
+    }
+  },
+  "cases": [
+    {
+      "id": "F1",
+      "topic": "contract",
+      "title": "Health endpoint answers before authentication",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 200,
+        "ok": true
+      },
+      "actual": {
+        "status": 200,
+        "ok": true
+      }
+    },
+    {
+      "id": "F2",
+      "topic": "authentication",
+      "title": "Doctor signs in and receives a session cookie and CSRF token",
+      "pass": true,
+      "ms": 53,
+      "expected": {
+        "status": 200,
+        "hasCookie": true,
+        "hasCsrf": true,
+        "role": "doctor"
+      },
+      "actual": {
+        "status": 200,
+        "hasCookie": true,
+        "hasCsrf": true,
+        "role": "doctor"
+      }
+    },
+    {
+      "id": "F3",
+      "topic": "contract",
+      "title": "Follow-up board returns the documented envelope",
+      "pass": true,
+      "ms": 7,
+      "expected": {
+        "status": 200,
+        "hasScope": true,
+        "hasCounts": true,
+        "countKeys": [
+          "overdue",
+          "dueToday",
+          "upcoming",
+          "open",
+          "closed"
+        ],
+        "rowKeys": [
+          "id",
+          "patientName",
+          "dueDate",
+          "reason",
+          "status",
+          "daysFromToday"
+        ]
+      },
+      "actual": {
+        "status": 200,
+        "hasScope": true,
+        "hasCounts": true,
+        "countKeys": [
+          "overdue",
+          "dueToday",
+          "upcoming",
+          "open",
+          "closed"
+        ],
+        "rowKeys": [
+          "id",
+          "patientName",
+          "dueDate",
+          "reason",
+          "status",
+          "daysFromToday"
+        ]
+      }
+    },
+    {
+      "id": "F4",
+      "topic": "contract",
+      "title": "Follow-up detail returns record, patient, history and jobs",
+      "pass": true,
+      "ms": 9,
+      "expected": {
+        "status": 200,
+        "keys": [
+          "followUp",
+          "patient",
+          "events",
+          "jobs"
+        ]
+      },
+      "actual": {
+        "status": 200,
+        "keys": [
+          "followUp",
+          "patient",
+          "events",
+          "jobs"
+        ]
+      }
+    },
+    {
+      "id": "F5",
+      "topic": "functional",
+      "title": "Contact attempt \"reached\" moves the record to reminded",
+      "pass": true,
+      "ms": 6,
+      "expected": {
+        "status": 200,
+        "status_": "reminded",
+        "attempts": 1
+      },
+      "actual": {
+        "status": 200,
+        "status_": "reminded",
+        "attempts": 1
+      }
+    },
+    {
+      "id": "F6",
+      "topic": "functional",
+      "title": "Reschedule moves the date and increments the revision",
+      "pass": true,
+      "ms": 7,
+      "expected": {
+        "status": 200,
+        "versionBumped": true,
+        "dueDate": "2026-12-05"
+      },
+      "actual": {
+        "status": 200,
+        "versionBumped": true,
+        "dueDate": "2026-12-05"
+      }
+    },
+    {
+      "id": "F7",
+      "topic": "functional",
+      "title": "Doctor closes a follow-up with an outcome",
+      "pass": true,
+      "ms": 6,
+      "expected": {
+        "status": 200,
+        "status_": "closed",
+        "outcome": "attended"
+      },
+      "actual": {
+        "status": 200,
+        "status_": "closed",
+        "outcome": "attended"
+      }
+    },
+    {
+      "id": "V1",
+      "topic": "invalid",
+      "title": "Unknown contact outcome is rejected",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 400
+      },
+      "actual": {
+        "status": 400
+      }
+    },
+    {
+      "id": "V2",
+      "topic": "invalid",
+      "title": "Malformed due date is rejected",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 400
+      },
+      "actual": {
+        "status": 400
+      }
+    },
+    {
+      "id": "V3",
+      "topic": "invalid",
+      "title": "Rescheduling into the past is rejected",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 400
+      },
+      "actual": {
+        "status": 400
+      }
+    },
+    {
+      "id": "V4",
+      "topic": "invalid",
+      "title": "Malformed JSON body returns a consistent error contract",
+      "pass": true,
+      "ms": 5,
+      "expected": {
+        "status": 400,
+        "code": "MALFORMED_JSON",
+        "hasRequestId": true,
+        "leaksParserText": false
+      },
+      "actual": {
+        "status": 400,
+        "code": "MALFORMED_JSON",
+        "hasRequestId": true,
+        "leaksParserText": false
+      }
+    },
+    {
+      "id": "V5",
+      "topic": "invalid",
+      "title": "Oversized body is rejected with a bounded error",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 413,
+        "code": "BODY_TOO_LARGE",
+        "hasRequestId": true
+      },
+      "actual": {
+        "status": 413,
+        "code": "BODY_TOO_LARGE",
+        "hasRequestId": true
+      }
+    },
+    {
+      "id": "V6",
+      "topic": "invalid",
+      "title": "Closing as lost-to-follow-up requires a note",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 400
+      },
+      "actual": {
+        "status": 400
+      }
+    },
+    {
+      "id": "A1",
+      "topic": "authentication",
+      "title": "No session is refused on a protected route",
+      "pass": true,
+      "ms": 1,
+      "expected": {
+        "status": 401,
+        "code": "UNAUTHENTICATED"
+      },
+      "actual": {
+        "status": 401,
+        "code": "UNAUTHENTICATED"
+      }
+    },
+    {
+      "id": "A2",
+      "topic": "authentication",
+      "title": "A forged session cookie is refused",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 401
+      },
+      "actual": {
+        "status": 401
+      }
+    },
+    {
+      "id": "A3",
+      "topic": "authentication",
+      "title": "A write without a CSRF token is refused",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 403
+      },
+      "actual": {
+        "status": 403
+      }
+    },
+    {
+      "id": "A4",
+      "topic": "authentication",
+      "title": "A write with the wrong CSRF token is refused",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 403
+      },
+      "actual": {
+        "status": 403
+      }
+    },
+    {
+      "id": "A5",
+      "topic": "authentication",
+      "title": "A cross-site Origin is refused",
+      "pass": true,
+      "ms": 1,
+      "expected": {
+        "status": 403
+      },
+      "actual": {
+        "status": 403
+      }
+    },
+    {
+      "id": "A6",
+      "topic": "authentication",
+      "title": "A session revoked server-side no longer authenticates",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 401
+      },
+      "actual": {
+        "status": 401
+      }
+    },
+    {
+      "id": "Z1",
+      "topic": "authorization",
+      "title": "A nurse cannot close a follow-up",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 403,
+        "code": "FORBIDDEN_ROLE"
+      },
+      "actual": {
+        "status": 403,
+        "code": "FORBIDDEN_ROLE"
+      }
+    },
+    {
+      "id": "Z2",
+      "topic": "authorization",
+      "title": "A nurse may still record a contact attempt",
+      "pass": true,
+      "ms": 5,
+      "expected": {
+        "status": 200
+      },
+      "actual": {
+        "status": 200
+      }
+    },
+    {
+      "id": "N1",
+      "topic": "not-found",
+      "title": "An unknown follow-up id returns 404",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 404
+      },
+      "actual": {
+        "status": 404
+      }
+    },
+    {
+      "id": "N2",
+      "topic": "not-found",
+      "title": "An unknown API path returns 404 with the error contract",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 404,
+        "hasError": true,
+        "hasRequestId": true
+      },
+      "actual": {
+        "status": 404,
+        "hasError": true,
+        "hasRequestId": true
+      }
+    },
+    {
+      "id": "D1",
+      "topic": "duplicate",
+      "title": "Queueing the same reminder twice is idempotent",
+      "pass": true,
+      "ms": 10,
+      "expected": {
+        "firstStatus": 201,
+        "secondStatus": 200,
+        "deduplicated": true,
+        "sameJob": true
+      },
+      "actual": {
+        "firstStatus": 201,
+        "secondStatus": 200,
+        "deduplicated": true,
+        "sameJob": true
+      }
+    },
+    {
+      "id": "D2",
+      "topic": "duplicate",
+      "title": "Closing the same follow-up twice returns 409",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 409
+      },
+      "actual": {
+        "status": 409
+      }
+    },
+    {
+      "id": "D3",
+      "topic": "duplicate",
+      "title": "Registering an existing patient id returns 409",
+      "pass": true,
+      "ms": 3,
+      "expected": {
+        "status": 409
+      },
+      "actual": {
+        "status": 409
+      }
+    },
+    {
+      "id": "R1",
+      "topic": "reliability",
+      "title": "A 503 from the gateway is retried to the limit, then escalated",
+      "pass": true,
+      "ms": 0,
+      "expected": {
+        "status": "needs_human",
+        "attempts": 3,
+        "boundedByMaxAttempts": true
+      },
+      "actual": {
+        "status": "needs_human",
+        "attempts": 3,
+        "boundedByMaxAttempts": true
+      }
+    },
+    {
+      "id": "R2",
+      "topic": "reliability",
+      "title": "A gateway that never answers times out and is bounded",
+      "pass": true,
+      "ms": 0,
+      "expected": {
+        "status": "needs_human",
+        "timedOut": true,
+        "attemptsWithinLimit": true
+      },
+      "actual": {
+        "status": "needs_human",
+        "timedOut": true,
+        "attemptsWithinLimit": true
+      }
+    },
+    {
+      "id": "R3",
+      "topic": "reliability",
+      "title": "The same path succeeds once the gateway recovers",
+      "pass": true,
+      "ms": 0,
+      "expected": {
+        "status": "succeeded"
+      },
+      "actual": {
+        "status": "succeeded"
+      }
+    },
+    {
+      "id": "Z3",
+      "topic": "authorization",
+      "title": "A nurse does not receive doctor-only automation alerts",
+      "pass": true,
+      "ms": 5,
+      "expected": {
+        "doctorSeesAlerts": true,
+        "nurseAlertCount": 0
+      },
+      "actual": {
+        "doctorSeesAlerts": true,
+        "nurseAlertCount": 0
+      }
+    },
+    {
+      "id": "S1",
+      "topic": "hardening",
+      "title": "Security headers are present on API responses",
+      "pass": true,
+      "ms": 1,
+      "expected": {
+        "nosniff": "nosniff",
+        "frame": "DENY",
+        "referrer": "no-referrer",
+        "csp": true,
+        "permissions": true,
+        "requestId": true
+      },
+      "actual": {
+        "nosniff": "nosniff",
+        "frame": "DENY",
+        "referrer": "no-referrer",
+        "csp": true,
+        "permissions": true,
+        "requestId": true
+      }
+    },
+    {
+      "id": "S2",
+      "topic": "hardening",
+      "title": "An inbound correlation id is preserved for tracing",
+      "pass": true,
+      "ms": 1,
+      "expected": {
+        "echoed": "m15-trace-0123456789"
+      },
+      "actual": {
+        "echoed": "m15-trace-0123456789"
+      }
+    },
+    {
+      "id": "S3",
+      "topic": "hardening",
+      "title": "Repeated failed logins are rate limited",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "limited": true,
+        "status": 429,
+        "hasRetryAfter": true
+      },
+      "actual": {
+        "limited": true,
+        "status": 429,
+        "hasRetryAfter": true
+      }
+    },
+    {
+      "id": "S4",
+      "topic": "hardening",
+      "title": "Login timing does not reveal whether a username exists",
+      "pass": true,
+      "ms": 87,
+      "expected": {
+        "deltaUnderMs": 15,
+        "classification": "indistinguishable"
+      },
+      "actual": {
+        "deltaUnderMs": true,
+        "classification": "indistinguishable",
+        "realMedianMs": 44,
+        "ghostMedianMs": 43
+      }
+    },
+    {
+      "id": "S5",
+      "topic": "hardening",
+      "title": "A non-numeric path parameter is a client error, not a server error",
+      "pass": true,
+      "ms": 2,
+      "expected": {
+        "status": 400,
+        "code": "INVALID_PARAMETER",
+        "hasRequestId": true,
+        "leaksInternals": false
+      },
+      "actual": {
+        "status": 400,
+        "code": "INVALID_PARAMETER",
+        "hasRequestId": true,
+        "leaksInternals": false
+      }
+    },
+    {
+      "id": "S6",
+      "topic": "hardening",
+      "title": "A refusal from the exchange layer keeps its declared status and code",
+      "pass": true,
+      "ms": 4,
+      "expected": {
+        "status": 409,
+        "code": "FOLLOW_UP_NOT_DISCLOSABLE"
+      },
+      "actual": {
+        "status": 409,
+        "code": "FOLLOW_UP_NOT_DISCLOSABLE"
+      }
+    },
+    {
+      "id": "L1",
+      "topic": "hardening",
+      "title": "Logs contain no password, token or key material",
+      "pass": true,
+      "ms": 0,
+      "expected": {
+        "passwordPresent": false,
+        "csrfPresent": false,
+        "privateKeyPresent": false,
+        "hasCorrelationIds": true
+      },
+      "actual": {
+        "passwordPresent": false,
+        "csrfPresent": false,
+        "privateKeyPresent": false,
+        "hasCorrelationIds": true,
+        "requestIdLines": 126,
+        "logLines": 162
+      }
+    }
+  ],
+  "stubHits": [
+    {
+      "at": "2026-11-25T14:21:21.839Z",
+      "mode": "503",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "167f80f9899460c722fd3145278d9a27"
+    },
+    {
+      "at": "2026-11-25T14:21:22.073Z",
+      "mode": "503",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "167f80f9899460c722fd3145278d9a27"
+    },
+    {
+      "at": "2026-11-25T14:21:22.334Z",
+      "mode": "503",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "1bcec2eca2d2b938f112772b2f24c43c"
+    },
+    {
+      "at": "2026-11-25T14:21:22.593Z",
+      "mode": "503",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "167f80f9899460c722fd3145278d9a27"
+    },
+    {
+      "at": "2026-11-25T14:21:22.857Z",
+      "mode": "503",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "1bcec2eca2d2b938f112772b2f24c43c"
+    },
+    {
+      "at": "2026-11-25T14:21:23.386Z",
+      "mode": "503",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "1bcec2eca2d2b938f112772b2f24c43c"
+    },
+    {
+      "at": "2026-11-25T14:21:23.649Z",
+      "mode": "timeout",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "ff51fd141129f8f6557cbee7582cdcd6"
+    },
+    {
+      "at": "2026-11-25T14:21:24.696Z",
+      "mode": "timeout",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "ff51fd141129f8f6557cbee7582cdcd6"
+    },
+    {
+      "at": "2026-11-25T14:21:25.745Z",
+      "mode": "timeout",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "ff51fd141129f8f6557cbee7582cdcd6"
+    },
+    {
+      "at": "2026-11-25T14:21:26.786Z",
+      "mode": "ok",
+      "path": "/notify",
+      "bytes": 64,
+      "correlationId": "a7c7d490221c04d08545523f189af615"
+    }
+  ]
+}

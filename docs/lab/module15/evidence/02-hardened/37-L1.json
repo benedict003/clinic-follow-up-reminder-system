@@ -1,0 +1,23 @@
+{
+  "id": "L1",
+  "label": "02-hardened",
+  "topic": "hardening",
+  "title": "Logs contain no password, token or key material",
+  "startedAt": "2026-11-25T13:41:07.880Z",
+  "expected": {
+    "passwordPresent": false,
+    "csrfPresent": false,
+    "privateKeyPresent": false,
+    "hasCorrelationIds": true
+  },
+  "actual": {
+    "passwordPresent": false,
+    "csrfPresent": false,
+    "privateKeyPresent": false,
+    "hasCorrelationIds": true,
+    "requestIdLines": 125,
+    "logLines": 161
+  },
+  "pass": true,
+  "ms": 0
+}

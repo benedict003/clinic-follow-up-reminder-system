@@ -1,0 +1,19 @@
+{
+  "id": "V5",
+  "label": "02-hardened",
+  "topic": "invalid",
+  "title": "Oversized body is rejected with a bounded error",
+  "startedAt": "2026-11-25T13:41:01.661Z",
+  "expected": {
+    "status": 413,
+    "code": "BODY_TOO_LARGE",
+    "hasRequestId": true
+  },
+  "actual": {
+    "status": 413,
+    "code": "BODY_TOO_LARGE",
+    "hasRequestId": true
+  },
+  "pass": true,
+  "ms": 3
+}

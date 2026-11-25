@@ -1,0 +1,15 @@
+{
+  "id": "V6",
+  "label": "03-after-ui-fixes",
+  "topic": "invalid",
+  "title": "Closing as lost-to-follow-up requires a note",
+  "startedAt": "2026-11-25T14:21:21.354Z",
+  "expected": {
+    "status": 400
+  },
+  "actual": {
+    "status": 400
+  },
+  "pass": true,
+  "ms": 3
+}

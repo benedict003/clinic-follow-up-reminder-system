@@ -1,0 +1,15 @@
+{
+  "id": "A5",
+  "label": "02-hardened",
+  "topic": "authentication",
+  "title": "A cross-site Origin is refused",
+  "startedAt": "2026-11-25T13:41:01.682Z",
+  "expected": {
+    "status": 403
+  },
+  "actual": {
+    "status": 403
+  },
+  "pass": true,
+  "ms": 1
+}

@@ -1,0 +1,27 @@
+{
+  "id": "F4",
+  "label": "01-baseline",
+  "topic": "contract",
+  "title": "Follow-up detail returns record, patient, history and jobs",
+  "startedAt": "2026-11-25T13:32:19.146Z",
+  "expected": {
+    "status": 200,
+    "keys": [
+      "followUp",
+      "patient",
+      "events",
+      "jobs"
+    ]
+  },
+  "actual": {
+    "status": 200,
+    "keys": [
+      "followUp",
+      "patient",
+      "events",
+      "jobs"
+    ]
+  },
+  "pass": true,
+  "ms": 7
+}

@@ -1,0 +1,15 @@
+{
+  "id": "V2",
+  "label": "03-after-ui-fixes",
+  "topic": "invalid",
+  "title": "Malformed due date is rejected",
+  "startedAt": "2026-11-25T14:21:21.337Z",
+  "expected": {
+    "status": 400
+  },
+  "actual": {
+    "status": 400
+  },
+  "pass": true,
+  "ms": 3
+}

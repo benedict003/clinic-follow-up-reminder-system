@@ -1,0 +1,20 @@
+{
+  "id": "R1",
+  "label": "01-baseline",
+  "topic": "reliability",
+  "title": "A 503 from the gateway is retried to the limit, then escalated",
+  "startedAt": "2026-11-25T13:32:19.372Z",
+  "expected": {
+    "status": "needs_human",
+    "attempts": 3,
+    "boundedByMaxAttempts": true
+  },
+  "actual": {
+    "status": "needs_human",
+    "attempts": 3,
+    "boundedByMaxAttempts": true
+  },
+  "pass": true,
+  "ms": 0,
+  "note": "job #2 correlation 0d06fa69d4c8c0669059937f48715f4b"
+}

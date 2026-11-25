@@ -1,0 +1,20 @@
+{
+  "id": "R1",
+  "label": "02-hardened",
+  "topic": "reliability",
+  "title": "A 503 from the gateway is retried to the limit, then escalated",
+  "startedAt": "2026-11-25T13:41:01.887Z",
+  "expected": {
+    "status": "needs_human",
+    "attempts": 3,
+    "boundedByMaxAttempts": true
+  },
+  "actual": {
+    "status": "needs_human",
+    "attempts": 3,
+    "boundedByMaxAttempts": true
+  },
+  "pass": true,
+  "ms": 0,
+  "note": "job #2 correlation 800a3b3b46def2a57bd444c6a1d05e49"
+}
