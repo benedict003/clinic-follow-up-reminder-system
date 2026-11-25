@@ -10,3 +10,8 @@ tls/
 *.pem
 *.key
 *.pfx
+# Module 15 build scratch
+.chrome-profile/
+.docx-build/
+.docx-evidence/
+.docx-manual/
