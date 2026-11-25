@@ -233,3 +233,51 @@ because the board's search box carries patient names) before the routers run.
 fixed after the baseline and hardened runs were recorded. The baseline and hardened
 folders are left exactly as they were; the third run is the confirmation that the
 UI and logging changes did not disturb any of the 37 cases (37/37).
+
+---
+
+## D-11 — The generated documents could not be opened by Word · **fixed**
+
+**Found by** the learner opening `Module15.docx` for submission.
+**Severity** high (the deliverable was unreadable in the application it is meant
+for).
+
+**Observed** Word reported "Word experienced an error trying to open the file" for
+`Module15.docx` and `Module15-evidence.docx`. The earlier, image-free build of the
+same report opened normally.
+
+**Cause** the documents are generated. The image markup used the `wp:`
+(drawingml wordprocessingDrawing) prefix, but the `<w:document>` root declared only
+`w`, `w14`, `r` and `mc`. An undeclared prefix makes `document.xml` invalid XML, and
+Word refuses the package outright. `a:` and `pic:` happened to be declared inline
+where they were used; `wp:` was not declared anywhere.
+
+**Why the earlier checks missed it** `unzip` succeeds on a structurally valid ZIP,
+and the markdown converter used to proof-read the text parses leniently. Both were
+answering a different question from the one that mattered: *will Word open this?*
+The lesson is the same one this module makes elsewhere — a check that does not run
+in the real environment is not evidence.
+
+**Fix** both generators declare `wp`, `a` and `pic` on the root element.
+`docs/lab/module15/validate-docx.js` was added and now runs as part of the build
+check; it verifies, in the order these things actually break:
+
+1. every element prefix is declared;
+2. `document.xml` parses under a strict parser (PowerShell `[xml]`, not a
+   lenient converter);
+3. every `r:embed` resolves to a relationship and relationship IDs are unique;
+4. `[Content_Types].xml` declares the png default exactly once and an Override for
+   `document.xml`;
+5. zip entry names use forward slashes.
+
+**Retest** all three documents pass the validator, and were then opened in Word
+through COM automation, which is the application a reviewer will use:
+
+```
+Module15.docx                    pages=20  images=8  tables=16
+Module15-evidence.docx           pages=9   images=8  tables=7
+Module 15-operational-manual.docx pages=5  images=0  tables=6
+```
+
+Image dimensions confirmed inside Word: 446x279 pt for desktop captures and
+171x360 pt for the narrow ones, i.e. the intended sizes, not stacked or missing.
