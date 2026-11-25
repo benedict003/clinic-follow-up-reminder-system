@@ -281,3 +281,39 @@ Module 15-operational-manual.docx pages=5  images=0  tables=6
 
 Image dimensions confirmed inside Word: 446x279 pt for desktop captures and
 171x360 pt for the narrow ones, i.e. the intended sizes, not stacked or missing.
+
+---
+
+## D-12 — Private keys and environment files were tracked in the repository · **fixed**
+
+**Found by** auditing the remote before submission, not by a test. **Severity** high
+(the module's own checklist requires that no key material is tracked).
+
+**Observed** `git ls-tree` at HEAD contained:
+
+```
+backend/keys/recipient-private.pem      the only key that can open an envelope
+backend/keys/sender-private.pem         the key that signs as the clinic
+backend/keys/ref.key                    HMAC key behind recordRef pseudonyms
+backend/tls/*-key.pem                   TLS private keys
+backend/.env.bak-*  (4 files)           DB_PASSWORD and LAB_PASSWORD in clear
+backend/.env.receiver                   names the receiver's private key
+```
+
+**Cause** `.gitignore` listed `keys/`, `tls/` and `*.pem`, but those files were
+committed before the rules existed, and git keeps tracking what it already tracks.
+The ignore rules created the appearance of hygiene while the objects stayed in the
+tree — the same mistake Module 14 §12 records, in a different place.
+
+**Fix** the files were untracked with `git rm --cached` (they stay on disk, so local
+runs are unaffected), `.gitignore` gained `backend/.env.*` with explicit exceptions
+for the two example files, and `backend/.env.receiver.example` was added so the
+receiver is reproducible without borrowing secrets.
+
+**Retest** at HEAD: 531 files, zero matches for `.pem`, `.key`, `keys/`, `tls/`, or a
+real `.env`. The precondition check in the Module 15 manual now prints 0.
+
+**Residual risk, stated rather than hidden** the keys remain in history and have
+been public. Removing them from history needs a rewrite and a force-push. The
+learner's decision was to disclose this to the instructor and regenerate the keys
+before any real patient data exists, rather than rewrite a submitted repository.

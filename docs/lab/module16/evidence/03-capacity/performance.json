@@ -1,0 +1,287 @@
+{
+  "label": "03-capacity",
+  "phase": "full",
+  "journeys": {
+    "board": {
+      "path": "/api/clinical/follow-ups?scope=open",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 393.9763,
+      "throughputRps": 304.6,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 1.92,
+        "p50": 2.82,
+        "p90": 4.19,
+        "p95": 4.6,
+        "p99": 8.82,
+        "max": 22.78
+      }
+    },
+    "worklist": {
+      "path": "/api/clinical/worklist",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 360.2669,
+      "throughputRps": 333.1,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 2.16,
+        "p50": 2.62,
+        "p90": 4.13,
+        "p95": 4.48,
+        "p99": 5.85,
+        "max": 7.01
+      }
+    },
+    "record": {
+      "path": "/api/clinical/follow-ups/1",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 150.753,
+      "throughputRps": 796,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 0.72,
+        "p50": 0.97,
+        "p90": 1.92,
+        "p95": 2.38,
+        "p99": 3.21,
+        "max": 3.79
+      }
+    },
+    "patients": {
+      "path": "/api/clinical/patients",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 156.3352,
+      "throughputRps": 767.6,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 0.97,
+        "p50": 1.12,
+        "p90": 1.6,
+        "p95": 2.32,
+        "p99": 2.43,
+        "max": 2.68
+      }
+    },
+    "health": {
+      "path": "/api/health",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 62.2204,
+      "throughputRps": 1928.6,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 0.2,
+        "p50": 0.37,
+        "p90": 0.8,
+        "p95": 1.05,
+        "p99": 1.76,
+        "max": 1.88
+      }
+    },
+    "login": {
+      "path": "/api/login (scrypt, deliberately expensive)",
+      "concurrency": 1,
+      "requests": 20,
+      "wallMs": 890.5973,
+      "throughputRps": 22.5,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 40.08,
+        "p50": 42.76,
+        "p90": 47.2,
+        "p95": 50.57,
+        "p99": 56.84,
+        "max": 56.84
+      }
+    }
+  },
+  "mixes": {
+    "mixed-c8": {
+      "concurrency": 8,
+      "journeys": "board 45%, worklist 20%, record 25%, patients 7%, health 3%",
+      "requests": 800,
+      "wallMs": 633.3694,
+      "throughputRps": 1263.1,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 1.34,
+        "p50": 5.8,
+        "p90": 9.29,
+        "p95": 10.36,
+        "p99": 15.36,
+        "max": 21.15
+      }
+    },
+    "mixed-c32": {
+      "concurrency": 32,
+      "journeys": "board 45%, worklist 20%, record 25%, patients 7%, health 3%",
+      "requests": 1600,
+      "wallMs": 1068.8201,
+      "throughputRps": 1497,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 3.56,
+        "p50": 18.86,
+        "p90": 32.92,
+        "p95": 35.86,
+        "p99": 42.56,
+        "max": 46.94
+      }
+    },
+    "soak-20s": {
+      "concurrency": 8,
+      "thinkTimeMs": 20,
+      "requests": 4779,
+      "wallMs": 20001.0928,
+      "throughputRps": 238.9,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 1.62,
+        "p50": 9.72,
+        "p90": 12.26,
+        "p95": 13.12,
+        "p99": 17.49,
+        "max": 22.29
+      }
+    }
+  },
+  "reliability": {
+    "health": {
+      "status": 200,
+      "ms": 1.43
+    },
+    "ready": {
+      "status": 200,
+      "ms": 1.23
+    },
+    "metrics": {
+      "status": 200,
+      "ms": 1
+    },
+    "rssBeforeShutdownMb": 161,
+    "dbConnectionsDuringLoad": 12,
+    "limiter": {
+      "configuredPerMinute": 10,
+      "authenticatedRequests": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        429,
+        429,
+        429,
+        429,
+        429
+      ],
+      "firstRefusalAt": 10,
+      "probesDuringBurst": [
+        200
+      ],
+      "works": true
+    },
+    "poolResilience": {
+      "connectionsKilled": 10,
+      "readyStatusAfterLoss": 200,
+      "readyDetectedInMs": 3,
+      "livenessDuringLoss": 200,
+      "recoveredAfterMs": 271,
+      "interpretation": "pool reconnected automatically; readiness stayed true because the service could still serve"
+    },
+    "readinessOnMissingDependency": {
+      "instanceStarted": true,
+      "readinessStatus": 503,
+      "readinessDetectedInMs": 4,
+      "livenessStatus": 200,
+      "readinessReportedDatabaseError": true,
+      "works": true
+    },
+    "gracefulShutdown": {
+      "exited": true,
+      "msToExit": 112
+    }
+  },
+  "notes": [],
+  "fixtures": {
+    "followUps": 400,
+    "dueNow": 217
+  },
+  "static": {
+    "/app/main.dart.js": {
+      "uncompressedBytes": 2952392,
+      "compressedBytes": 791500,
+      "encodedWith": "br",
+      "cacheControl": "public, max-age=3600",
+      "transferMs": 1.88
+    },
+    "/app/canvaskit/canvaskit.wasm": {
+      "uncompressedBytes": 7315452,
+      "compressedBytes": 2685797,
+      "encodedWith": "br",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "transferMs": 3.86
+    },
+    "/app/flutter_bootstrap.js": {
+      "uncompressedBytes": 14152,
+      "compressedBytes": 5298,
+      "encodedWith": "br",
+      "cacheControl": "no-cache",
+      "transferMs": 0.72
+    },
+    "/app/assets/FontManifest.json": {
+      "uncompressedBytes": 284,
+      "compressedBytes": 284,
+      "encodedWith": "none",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "transferMs": 0.66
+    }
+  },
+  "resources": {
+    "rssStartMb": 66,
+    "rssEndMb": 161,
+    "growthMb": 95
+  },
+  "environment": {
+    "compression": "on",
+    "rateLimitsForCapacityRun": {
+      "userPerMinute": 1000000,
+      "addressPerMinute": 1000000,
+      "loginPerMinute": 1000000,
+      "note": "raised for the load phases so the measurement is of the server; the limiter is verified by checkLimiter()"
+    },
+    "node": "v26.13.1",
+    "platform": "win32 x64",
+    "database": "clinic_followup_m16",
+    "concurrencyLevels": [
+      1,
+      8,
+      32
+    ]
+  }
+}

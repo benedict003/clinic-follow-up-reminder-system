@@ -1,0 +1,179 @@
+{
+  "label": "01-baseline",
+  "phase": "quick",
+  "journeys": {
+    "board": {
+      "path": "/api/clinical/follow-ups?scope=open",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 440.1144,
+      "throughputRps": 272.7,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 2.46,
+        "p50": 2.97,
+        "p90": 4.83,
+        "p95": 5.89,
+        "p99": 8.71,
+        "max": 22.72
+      }
+    },
+    "worklist": {
+      "path": "/api/clinical/worklist",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 410.4568,
+      "throughputRps": 292.4,
+      "errorCount": 0,
+      "errorRatePct": 0,
+      "errorStatuses": [],
+      "latencyMs": {
+        "min": 2.37,
+        "p50": 3.03,
+        "p90": 4.55,
+        "p95": 4.81,
+        "p99": 7.64,
+        "max": 9.36
+      }
+    },
+    "record": {
+      "path": "/api/clinical/follow-ups/1",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 94.7438,
+      "throughputRps": 1266.6,
+      "errorCount": 65,
+      "errorRatePct": 54.17,
+      "errorStatuses": [
+        429
+      ],
+      "latencyMs": {
+        "min": 0.15,
+        "p50": 0.63,
+        "p90": 1.56,
+        "p95": 1.74,
+        "p99": 2.54,
+        "max": 2.56
+      }
+    },
+    "patients": {
+      "path": "/api/clinical/patients",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 35.1431,
+      "throughputRps": 3414.6,
+      "errorCount": 120,
+      "errorRatePct": 100,
+      "errorStatuses": [
+        429
+      ],
+      "latencyMs": {
+        "min": 0.13,
+        "p50": 0.24,
+        "p90": 0.41,
+        "p95": 0.51,
+        "p99": 0.84,
+        "max": 1
+      }
+    },
+    "health": {
+      "path": "/api/health",
+      "concurrency": 1,
+      "requests": 120,
+      "wallMs": 45.8771,
+      "throughputRps": 2615.7,
+      "errorCount": 120,
+      "errorRatePct": 100,
+      "errorStatuses": [
+        429
+      ],
+      "latencyMs": {
+        "min": 0.12,
+        "p50": 0.29,
+        "p90": 0.66,
+        "p95": 0.86,
+        "p99": 1.18,
+        "max": 1.59
+      }
+    },
+    "login": {
+      "path": "/api/login (scrypt, deliberately expensive)",
+      "concurrency": 1,
+      "requests": 20,
+      "wallMs": 11.0803,
+      "throughputRps": 1805,
+      "errorCount": 20,
+      "errorRatePct": 100,
+      "errorStatuses": [
+        429
+      ],
+      "latencyMs": {
+        "min": 0.37,
+        "p50": 0.48,
+        "p90": 0.6,
+        "p95": 0.6,
+        "p99": 0.83,
+        "max": 0.83
+      }
+    }
+  },
+  "mixes": {
+    "mixed-c8": {
+      "concurrency": 8,
+      "journeys": "board 45%, worklist 20%, record 25%, patients 7%, health 3%",
+      "requests": 800,
+      "wallMs": 91.672,
+      "throughputRps": 8726.8,
+      "errorCount": 800,
+      "errorRatePct": 100,
+      "errorStatuses": [
+        429
+      ],
+      "latencyMs": {
+        "min": 0.24,
+        "p50": 0.71,
+        "p90": 1.57,
+        "p95": 1.92,
+        "p99": 4,
+        "max": 4.5
+      }
+    }
+  },
+  "reliability": {
+    "health": {
+      "status": 429,
+      "ms": 0.75
+    },
+    "ready": {
+      "status": 429,
+      "ms": 0.31
+    },
+    "metrics": {
+      "status": 429,
+      "ms": 0.27
+    },
+    "rssBeforeShutdownMb": 91,
+    "dbConnectionsDuringLoad": 4
+  },
+  "notes": [],
+  "fixtures": {
+    "followUps": 400,
+    "dueNow": 217
+  },
+  "resources": {
+    "rssStartMb": 67,
+    "rssEndMb": 91,
+    "growthMb": 24
+  },
+  "environment": {
+    "node": "v26.13.1",
+    "platform": "win32 x64",
+    "database": "clinic_followup_m16",
+    "concurrencyLevels": [
+      1,
+      8
+    ]
+  }
+}

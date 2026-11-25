@@ -1,0 +1,86 @@
+{
+  "checkedAt": "2026-11-25T15:22:47.090Z",
+  "appReachedSignIn": true,
+  "msToSignIn": 9039,
+  "runtimeErrors": [],
+  "totals": {
+    "encodedBytes": 2779277,
+    "decodedBytes": 0,
+    "savedBytes": -2779277,
+    "savedPct": null
+  },
+  "assets": [
+    {
+      "url": "/app/",
+      "status": 200,
+      "encodedBytes": 1479,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/flutter_bootstrap.js",
+      "status": 200,
+      "encodedBytes": 6217,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/manifest.json",
+      "status": 200,
+      "encodedBytes": 1868,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/canvaskit/chromium/canvaskit.wasm",
+      "status": 200,
+      "encodedBytes": 1845588,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/favicon.png",
+      "status": 200,
+      "encodedBytes": 1780,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/icons/Icon-192.png",
+      "status": 200,
+      "encodedBytes": 6172,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/canvaskit/chromium/canvaskit.js",
+      "status": 200,
+      "encodedBytes": 27731,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/main.dart.js",
+      "status": 200,
+      "encodedBytes": 792435,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/assets/FontManifest.json",
+      "status": 200,
+      "encodedBytes": 1184,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/assets/fonts/MaterialIcons-Regular.otf",
+      "status": 200,
+      "encodedBytes": 7199,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+      "status": 200,
+      "encodedBytes": 1721,
+      "decodedBytes": null
+    },
+    {
+      "url": "/app/assets/fonts/fallback/Roboto-Regular.ttf",
+      "status": 200,
+      "encodedBytes": 85903,
+      "decodedBytes": null
+    }
+  ]
+}
