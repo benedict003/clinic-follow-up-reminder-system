@@ -105,7 +105,12 @@ function publicEvent(e) {
 }
 
 async function loadFollowUp(id, conn = pool) {
-  if (!Number.isInteger(id) || id < 1) throw httpError(400, 'A whole follow-up id is required.');
+  // Same code as the exchange routes use for the same class of mistake. UAT-8 found
+  // this answering BAD_REQUEST while /api/secure/* answered INVALID_PARAMETER: one
+  // error class, two codes, which makes a client's error handling guesswork.
+  if (!Number.isInteger(id) || id < 1) {
+    throw httpError(400, 'A whole follow-up id is required.', 'INVALID_PARAMETER');
+  }
   const [rows] = await conn.execute(
     `SELECT f.*, p.name AS patient_name, p.category, p.contact_number,
             DATEDIFF(f.due_date, CURDATE()) AS days_from_today
