@@ -9,6 +9,7 @@
 // fields are added beside it, never replacing it. Existing clients keep working;
 // new clients can branch on `code`.
 import { createHash, randomUUID } from 'node:crypto';
+import { recordRequest } from './observability.js';
 
 const SAFE_INBOUND_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
@@ -40,6 +41,7 @@ export function requestContext(req, res, next) {
   const started = process.hrtime.bigint();
   res.on('finish', () => {
     const durationMs = Math.round(Number(process.hrtime.bigint() - started) / 1e6);
+    recordRequest(req, res, durationMs);
     log(res.statusCode >= 500 ? 'request.failed' : 'request.complete', {
       requestId: req.id,
       method: req.method,
@@ -181,7 +183,7 @@ export function notFoundHandler(req, _res, next) {
  * it stops one account being guessed at, and does not let one noisy client lock
  * out an entire clinic behind a shared address.
  */
-export function rateLimit({ name, windowMs = 60_000, max = 10, key = 'ip' }) {
+export function rateLimit({ name, windowMs = 60_000, max = 10, key = 'ip', skip = null }) {
   const hits = new Map();
   const pruner = setInterval(() => {
     const now = Date.now();
@@ -191,6 +193,13 @@ export function rateLimit({ name, windowMs = 60_000, max = 10, key = 'ip' }) {
 
   const keyOf = (req) => {
     if (typeof key === 'function') return key(req);
+    if (key === 'user') {
+      // Prefer the authenticated identity. An address identifies a building, not a
+      // person: every workstation behind one NAT would otherwise share a budget
+      // and throttle each other. Falls back to the address for anonymous calls.
+      const u = req.session?.user;
+      return u ? `user:${u.id}` : `ip:${req.ip ?? 'unknown'}`;
+    }
     if (key === 'username') {
       const u = String(req.body?.username ?? '').trim().toLowerCase();
       // Unauthenticated body may be absent or the wrong shape; fall back to IP so
@@ -201,6 +210,10 @@ export function rateLimit({ name, windowMs = 60_000, max = 10, key = 'ip' }) {
   };
 
   return (req, res, next) => {
+    // Health, readiness and metrics are polled by monitoring, often every few
+    // seconds, and always from one address. Refusing them tells an orchestrator
+    // the service is down when it is not.
+    if (skip && skip(req)) return next();
     const k = keyOf(req);
     const now = Date.now();
     let entry = hits.get(k);
