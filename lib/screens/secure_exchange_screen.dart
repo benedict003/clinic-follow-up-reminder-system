@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,12 +12,27 @@ import '../widgets/ui.dart';
 /// Three steps, and the send action is unreachable until step two is complete:
 /// a record cannot be sealed without having been reviewed. The client holds no
 /// key material and never sees plaintext beyond the preview the server returns.
+///
+/// Nothing on this page may block navigation. It used to wrap itself in
+/// `PopScope(canPop: !_busy)` and disable the Reload action while a load was in
+/// flight, so a single slow request left the page unable to go back and unable
+/// to reload - the only way out was refreshing the browser, which reads as a
+/// frozen tab. Loading is now a non-blocking flag: the page stays usable, the
+/// back arrow always works, and a request that never answers costs a banner,
+/// not the session.
 class SecureExchangeScreen extends StatefulWidget {
   const SecureExchangeScreen({super.key});
 
   @override
   State<SecureExchangeScreen> createState() => _SecureExchangeScreenState();
 }
+
+/// One load: key fingerprints, send history and the picker choices.
+typedef _Loaded = ({
+  Map<String, dynamic> info,
+  List<Map<String, dynamic>> history,
+  List<Map<String, dynamic>> choices,
+});
 
 class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
   final SecureExchangeApi _secure = SecureExchangeApi();
@@ -27,16 +44,26 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
   List<Map<String, dynamic>> _history = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _choices = const <Map<String, dynamic>>[];
 
+  /// List load in flight. Drives only a thin progress bar - never a disabled
+  /// back button or a disabled Reload, which is what used to freeze the page.
+  bool _loading = false;
+
+  /// Preview/send in flight. Gates only the buttons that would overlap it.
   bool _busy = false;
   String _busyLabel = 'Working';
   String? _error;
   int? _previewedId;
 
+  /// Hard ceiling on one load, so the page always returns to a usable state.
+  static const Duration _loadBudget = Duration(seconds: 20);
+
   @override
   void initState() {
     super.initState();
     _idController.addListener(_onIdChanged);
-    _load();
+    // After the first frame: _load() calls setState, which must not run while
+    // this element is still being mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
@@ -65,44 +92,85 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
   bool get _canSend => !_busy && _doctor && _reviewed && _disclosable;
 
   Future<void> _load() async {
-    setState(() {
-      _busy = true;
-      _busyLabel = 'Loading';
-      _error = null;
-    });
+    if (_loading) return;
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      _loading = true;
+    }
+
     try {
-      final Map<String, dynamic> info = await _secure.keyInfo();
-
-      List<Map<String, dynamic>> rows = const <Map<String, dynamic>>[];
-      if (_doctor) {
-        try {
-          rows = await _secure.history();
-        } on ApiException catch (e) {
-          // A nurse may preview but not read who has been disclosed. That is a
-          // role boundary, not a failure, so it must not paint a red banner.
-          if (e.status != 403) rethrow;
-        }
-      }
-
-      List<Map<String, dynamic>> choices = const <Map<String, dynamic>>[];
-      try {
-        choices = await _secure.disclosableFollowUps();
-      } on ApiException {
-        // The picker is a convenience; manual entry still works without it.
-      }
-
+      final _Loaded loaded = await _fetch().timeout(_loadBudget);
       if (!mounted) return;
       setState(() {
-        _keyInfo = info;
-        _history = rows;
-        _choices = choices;
+        _keyInfo = loaded.info;
+        _history = loaded.history;
+        _choices = loaded.choices;
+        _loading = false;
+      });
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'The server did not answer within ${_loadBudget.inSeconds}s. '
+            'Check that the backend is running, then tap Reload.';
       });
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.message);
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    } catch (e) {
+      // Anything unexpected still has to release the page.
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Unexpected error while loading: $e';
+      });
     }
+  }
+
+  /// All three requests start together: one slow call must not make the other
+  /// two queue behind it and turn a 25s stall into a 75s one.
+  Future<_Loaded> _fetch() async {
+    final Future<Map<String, dynamic>> info = _secure.keyInfo();
+
+    Future<List<Map<String, dynamic>>> history() async {
+      if (!_doctor) return const <Map<String, dynamic>>[];
+      try {
+        return await _secure.history();
+      } on ApiException catch (e) {
+        // A nurse may preview but not read who has been disclosed. That is a
+        // role boundary, not a failure, so it must not paint a red banner.
+        if (e.status == 403) return const <Map<String, dynamic>>[];
+        rethrow;
+      }
+    }
+
+    Future<List<Map<String, dynamic>>> choices() async {
+      try {
+        return await _secure.disclosableFollowUps();
+      } on ApiException {
+        // The picker is a convenience; manual entry still works without it.
+        return const <Map<String, dynamic>>[];
+      }
+    }
+
+    // Future.wait listens to all three, so a failure in one cannot surface as
+    // an unhandled error from the other two.
+    final List<Object?> parts = await Future.wait<Object?>(
+      <Future<Object?>>[info, history(), choices()],
+    );
+
+    return (
+      info: parts[0]! as Map<String, dynamic>,
+      history: parts[1]! as List<Map<String, dynamic>>,
+      choices: parts[2]! as List<Map<String, dynamic>>,
+    );
   }
 
   Future<void> _pickFollowUp() async {
@@ -132,24 +200,28 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
               ),
             ),
             Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _choices.length,
-                itemBuilder: (BuildContext _, int i) {
-                  final Map<String, dynamic> f = _choices[i];
-                  // publicFollowUp() returns camelCase, so this is dueDate and
-                  // reason - not the due_date column name.
-                  return ListTile(
-                    leading: const CircleAvatar(
-                      radius: 14,
-                      child: Icon(Icons.event_available, size: 16),
-                    ),
-                    title: Text('Follow-up #${f['id']}'),
-                    subtitle:
-                    Text('due ${f['dueDate']} - ${f['reason'] ?? ''}'),
-                    onTap: () => Navigator.of(sheetContext).pop(f),
-                  );
-                },
+              // A shrink-wrapping ListView is a RenderShrinkWrappingViewport,
+              // which hit-tests its slivers through `child.geometry!`. When the
+              // sheet is opened, resized or dismissed, that geometry can still
+              // be null and every tap then throws inside the framework. A
+              // single-child scroll view has no slivers, so it cannot.
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    for (final Map<String, dynamic> f in _choices)
+                      ListTile(
+                        leading: const CircleAvatar(
+                          radius: 14,
+                          child: Icon(Icons.event_available, size: 16),
+                        ),
+                        title: Text('Follow-up #${f['id']}'),
+                        subtitle: Text(
+                            'due ${f['dueDate']} - ${f['reason'] ?? ''}'),
+                        onTap: () => Navigator.of(sheetContext).pop(f),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -268,55 +340,74 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
     final double width = MediaQuery.sizeOf(context).width;
     final double pad = width >= 720 ? 24 : 16;
 
-    return PopScope(
-      // Back mid-request would dispose the route while a pointer is still down.
-      canPop: !_busy,
-      child: Scaffold(
-        appBar: appBar('Secure exchange', actions: <Widget>[
-          IconButton(
-            tooltip: 'Reload',
-            onPressed: _busy ? null : _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ]),
-        body: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: pad, vertical: pad),
-            children: <Widget>[
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 860),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      if (_error != null) ...<Widget>[
-                        _banner(_error!),
+    return Scaffold(
+      appBar: appBar('Secure exchange', actions: <Widget>[
+        IconButton(
+          tooltip: 'Reload',
+          // Never disabled: a disabled Reload turns a slow load into a freeze.
+          onPressed: _load,
+          icon: _loading
+              ? const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: Colors.white),
+          )
+              : const Icon(Icons.refresh),
+        ),
+      ]),
+      body: Column(
+        children: <Widget>[
+          // Thin and non-blocking; it never covers or disables the page.
+          if (_loading) const LinearProgressIndicator(minHeight: 2),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              // SingleChildScrollView, not ListView. A ListView is a
+              // RenderViewport and hit-tests its sliver children through
+              // `child.geometry!` (viewport.dart:1031). If one sliver has not
+              // been laid out yet, that null check throws on EVERY pointer
+              // packet - nothing on the page responds, no tap, no scroll, and
+              // the tab looks frozen while still painting. A single-child
+              // scroll view hit-tests a plain RenderBox and cannot hit that
+              // path. This page has ~20 children, so lazy building buys
+              // nothing here.
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: pad, vertical: pad),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 860),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        if (_error != null) ...<Widget>[
+                          _banner(_error!),
+                          const SizedBox(height: 12),
+                        ],
+                        _keyStrip(),
                         const SizedBox(height: 12),
-                      ],
-                      _keyStrip(),
-                      const SizedBox(height: 12),
-                      _stepOne(),
-                      const SizedBox(height: 12),
-                      if (_reviewed) ...<Widget>[
-                        _stepTwo(),
+                        _stepOne(),
                         const SizedBox(height: 12),
+                        if (_reviewed) ...<Widget>[
+                          _stepTwo(),
+                          const SizedBox(height: 12),
+                        ],
+                        if (_result != null) ...<Widget>[
+                          _resultCard(),
+                          const SizedBox(height: 12),
+                        ],
+                        _historyCard(),
                       ],
-                      if (_result != null) ...<Widget>[
-                        _resultCard(),
-                        const SizedBox(height: 12),
-                      ],
-                      _historyCard(),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
-        bottomNavigationBar: _actionBar(),
+        ],
       ),
+      bottomNavigationBar: _actionBar(),
     );
   }
 
@@ -350,13 +441,22 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
+            // Wrap, not Row: the title plus a fingerprint chip overflowed by
+            // 67px at 380px wide. A Wrap simply moves the chip to a second line.
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
-                const Icon(Icons.fingerprint, size: 18),
-                const SizedBox(width: 8),
-                Text('This process holds',
-                    style: Theme.of(context).textTheme.titleSmall),
-                const Spacer(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const Icon(Icons.fingerprint, size: 18),
+                    const SizedBox(width: 8),
+                    Text('This process holds',
+                        style: Theme.of(context).textTheme.titleSmall),
+                  ],
+                ),
                 chip('keyId', keyId),
               ],
             ),
@@ -413,36 +513,69 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    controller: _idController,
-                    enabled: !_busy,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.go,
-                    onSubmitted: (_) => _previewRecord(),
-                    decoration: const InputDecoration(
-                      labelText: 'Follow-up ID',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+            LayoutBuilder(builder: (BuildContext ctx, BoxConstraints c) {
+              final Widget field = TextField(
+                controller: _idController,
+                enabled: !_busy,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.go,
+                onSubmitted: (_) => _previewRecord(),
+                decoration: const InputDecoration(
+                  labelText: 'Follow-up ID',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              );
+              final Widget picker = IconButton.filledTonal(
+                tooltip: 'Choose from scheduled follow-ups',
+                onPressed: _busy ? null : _pickFollowUp,
+                icon: const Icon(Icons.list_alt),
+              );
+              // minimumSize MUST be overridden here. The theme sets
+              // Size.fromHeight(48), i.e. minWidth = infinity, which stretches
+              // a button to its parent's width - fine in a Column, fatal in a
+              // Row, where the width is unbounded: layout then throws
+              // "BoxConstraints forces an infinite width", the whole Scaffold
+              // aborts its layout, and every later tap dies in hit-testing
+              // ("Cannot hit test a render box that has never been laid out").
+              final Widget preview = FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 48),
+                ),
+                onPressed: _busy ? null : _previewRecord,
+                child: Text(_reviewed ? 'Re-preview' : 'Preview'),
+              );
+
+              // Phone width: the field on its own line, so the row cannot
+              // overflow (it did by 67px at 380px before this).
+              if (c.maxWidth < 520) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    field,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: <Widget>[
+                        picker,
+                        const SizedBox(width: 8),
+                        Expanded(child: preview),
+                      ],
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filledTonal(
-                  tooltip: 'Choose from scheduled follow-ups',
-                  onPressed: _busy ? null : _pickFollowUp,
-                  icon: const Icon(Icons.list_alt),
-                ),
-                const SizedBox(width: 4),
-                FilledButton.tonal(
-                  onPressed: _busy ? null : _previewRecord,
-                  child: Text(_reviewed ? 'Re-preview' : 'Preview'),
-                ),
-              ],
-            ),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(child: field),
+                  const SizedBox(width: 8),
+                  picker,
+                  const SizedBox(width: 4),
+                  preview,
+                ],
+              );
+            }),
           ],
         ),
       ),
@@ -882,7 +1015,9 @@ class _SecureExchangeScreenState extends State<SecureExchangeScreen> {
   Widget _actionBar() {
     final ThemeData theme = Theme.of(context);
     final String hint;
-    if (!_doctor) {
+    if (_loading) {
+      hint = 'Loading key status and history...';
+    } else if (!_doctor) {
       hint = 'Only a doctor can disclose a record to the partner.';
     } else if (!_reviewed) {
       hint = 'Preview a record first, so the send decision is made on the '
