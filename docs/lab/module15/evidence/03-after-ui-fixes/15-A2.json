@@ -1,0 +1,15 @@
+{
+  "id": "A2",
+  "label": "03-after-ui-fixes",
+  "topic": "authentication",
+  "title": "A forged session cookie is refused",
+  "startedAt": "2026-11-25T14:21:21.360Z",
+  "expected": {
+    "status": 401
+  },
+  "actual": {
+    "status": 401
+  },
+  "pass": true,
+  "ms": 2
+}

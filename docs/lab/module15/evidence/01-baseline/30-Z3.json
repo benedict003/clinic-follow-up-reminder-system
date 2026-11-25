@@ -1,0 +1,18 @@
+{
+  "id": "Z3",
+  "label": "01-baseline",
+  "topic": "authorization",
+  "title": "A nurse does not receive doctor-only automation alerts",
+  "startedAt": "2026-11-25T13:32:24.199Z",
+  "expected": {
+    "doctorSeesAlerts": true,
+    "nurseAlertCount": 0
+  },
+  "actual": {
+    "doctorSeesAlerts": true,
+    "nurseAlertCount": 1
+  },
+  "pass": false,
+  "ms": 5,
+  "note": "job #3"
+}

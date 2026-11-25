@@ -1,0 +1,15 @@
+{
+  "id": "A6",
+  "label": "03-after-ui-fixes",
+  "topic": "authentication",
+  "title": "A session revoked server-side no longer authenticates",
+  "startedAt": "2026-11-25T14:21:21.370Z",
+  "expected": {
+    "status": 401
+  },
+  "actual": {
+    "status": 401
+  },
+  "pass": true,
+  "ms": 2
+}

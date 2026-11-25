@@ -1,0 +1,15 @@
+{
+  "id": "S2",
+  "label": "01-baseline",
+  "topic": "hardening",
+  "title": "An inbound correlation id is preserved for tracing",
+  "startedAt": "2026-11-25T13:32:24.263Z",
+  "expected": {
+    "echoed": "m15-trace-0123456789"
+  },
+  "actual": {
+    "echoed": null
+  },
+  "pass": false,
+  "ms": 1
+}

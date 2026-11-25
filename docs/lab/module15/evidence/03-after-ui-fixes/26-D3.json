@@ -1,0 +1,15 @@
+{
+  "id": "D3",
+  "label": "03-after-ui-fixes",
+  "topic": "duplicate",
+  "title": "Registering an existing patient id returns 409",
+  "startedAt": "2026-11-25T14:21:21.548Z",
+  "expected": {
+    "status": 409
+  },
+  "actual": {
+    "status": 409
+  },
+  "pass": true,
+  "ms": 3
+}

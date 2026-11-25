@@ -1,0 +1,15 @@
+{
+  "id": "D3",
+  "label": "01-baseline",
+  "topic": "duplicate",
+  "title": "Registering an existing patient id returns 409",
+  "startedAt": "2026-11-25T13:32:19.369Z",
+  "expected": {
+    "status": 409
+  },
+  "actual": {
+    "status": 409
+  },
+  "pass": true,
+  "ms": 2
+}

@@ -1,0 +1,15 @@
+{
+  "id": "A4",
+  "label": "01-baseline",
+  "topic": "authentication",
+  "title": "A write with the wrong CSRF token is refused",
+  "startedAt": "2026-11-25T13:32:19.211Z",
+  "expected": {
+    "status": 403
+  },
+  "actual": {
+    "status": 403
+  },
+  "pass": true,
+  "ms": 2
+}

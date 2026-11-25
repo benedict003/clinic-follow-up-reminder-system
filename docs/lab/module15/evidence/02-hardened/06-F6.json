@@ -1,0 +1,19 @@
+{
+  "id": "F6",
+  "label": "02-hardened",
+  "topic": "functional",
+  "title": "Reschedule moves the date and increments the revision",
+  "startedAt": "2026-11-25T13:41:01.628Z",
+  "expected": {
+    "status": 200,
+    "versionBumped": true,
+    "dueDate": "2026-12-05"
+  },
+  "actual": {
+    "status": 200,
+    "versionBumped": true,
+    "dueDate": "2026-12-05"
+  },
+  "pass": true,
+  "ms": 7
+}

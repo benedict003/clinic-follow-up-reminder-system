@@ -1,0 +1,49 @@
+{
+  "id": "F3",
+  "label": "03-after-ui-fixes",
+  "topic": "contract",
+  "title": "Follow-up board returns the documented envelope",
+  "startedAt": "2026-11-25T14:21:21.288Z",
+  "expected": {
+    "status": 200,
+    "hasScope": true,
+    "hasCounts": true,
+    "countKeys": [
+      "overdue",
+      "dueToday",
+      "upcoming",
+      "open",
+      "closed"
+    ],
+    "rowKeys": [
+      "id",
+      "patientName",
+      "dueDate",
+      "reason",
+      "status",
+      "daysFromToday"
+    ]
+  },
+  "actual": {
+    "status": 200,
+    "hasScope": true,
+    "hasCounts": true,
+    "countKeys": [
+      "overdue",
+      "dueToday",
+      "upcoming",
+      "open",
+      "closed"
+    ],
+    "rowKeys": [
+      "id",
+      "patientName",
+      "dueDate",
+      "reason",
+      "status",
+      "daysFromToday"
+    ]
+  },
+  "pass": true,
+  "ms": 7
+}

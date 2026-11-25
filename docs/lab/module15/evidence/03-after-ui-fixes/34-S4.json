@@ -1,0 +1,20 @@
+{
+  "id": "S4",
+  "label": "03-after-ui-fixes",
+  "topic": "hardening",
+  "title": "Login timing does not reveal whether a username exists",
+  "startedAt": "2026-11-25T14:21:27.391Z",
+  "expected": {
+    "deltaUnderMs": 15,
+    "classification": "indistinguishable"
+  },
+  "actual": {
+    "deltaUnderMs": true,
+    "classification": "indistinguishable",
+    "realMedianMs": 44,
+    "ghostMedianMs": 43
+  },
+  "pass": true,
+  "ms": 87,
+  "note": "real 43/43/44/46/48 ms vs ghost 44/43/44/43/43 ms"
+}

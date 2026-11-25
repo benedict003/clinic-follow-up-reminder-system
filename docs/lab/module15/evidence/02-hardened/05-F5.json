@@ -1,0 +1,19 @@
+{
+  "id": "F5",
+  "label": "02-hardened",
+  "topic": "functional",
+  "title": "Contact attempt \"reached\" moves the record to reminded",
+  "startedAt": "2026-11-25T13:41:01.619Z",
+  "expected": {
+    "status": 200,
+    "status_": "reminded",
+    "attempts": 1
+  },
+  "actual": {
+    "status": 200,
+    "status_": "reminded",
+    "attempts": 1
+  },
+  "pass": true,
+  "ms": 7
+}

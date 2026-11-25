@@ -1,0 +1,15 @@
+{
+  "id": "V1",
+  "label": "02-hardened",
+  "topic": "invalid",
+  "title": "Unknown contact outcome is rejected",
+  "startedAt": "2026-11-25T13:41:01.647Z",
+  "expected": {
+    "status": 400
+  },
+  "actual": {
+    "status": 400
+  },
+  "pass": true,
+  "ms": 3
+}

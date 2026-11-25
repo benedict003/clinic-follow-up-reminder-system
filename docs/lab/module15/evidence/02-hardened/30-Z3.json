@@ -1,0 +1,18 @@
+{
+  "id": "Z3",
+  "label": "02-hardened",
+  "topic": "authorization",
+  "title": "A nurse does not receive doctor-only automation alerts",
+  "startedAt": "2026-11-25T13:41:06.995Z",
+  "expected": {
+    "doctorSeesAlerts": true,
+    "nurseAlertCount": 0
+  },
+  "actual": {
+    "doctorSeesAlerts": true,
+    "nurseAlertCount": 0
+  },
+  "pass": true,
+  "ms": 4,
+  "note": "job #3"
+}

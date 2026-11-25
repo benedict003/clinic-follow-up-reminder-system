@@ -1,0 +1,19 @@
+{
+  "id": "N2",
+  "label": "01-baseline",
+  "topic": "not-found",
+  "title": "An unknown API path returns 404 with the error contract",
+  "startedAt": "2026-11-25T13:32:19.356Z",
+  "expected": {
+    "status": 404,
+    "hasError": true,
+    "hasRequestId": true
+  },
+  "actual": {
+    "status": 404,
+    "hasError": true,
+    "hasRequestId": false
+  },
+  "pass": false,
+  "ms": 1
+}

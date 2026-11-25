@@ -1,0 +1,15 @@
+{
+  "id": "N1",
+  "label": "01-baseline",
+  "topic": "not-found",
+  "title": "An unknown follow-up id returns 404",
+  "startedAt": "2026-11-25T13:32:19.353Z",
+  "expected": {
+    "status": 404
+  },
+  "actual": {
+    "status": 404
+  },
+  "pass": true,
+  "ms": 2
+}

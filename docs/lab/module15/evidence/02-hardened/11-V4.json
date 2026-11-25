@@ -1,0 +1,21 @@
+{
+  "id": "V4",
+  "label": "02-hardened",
+  "topic": "invalid",
+  "title": "Malformed JSON body returns a consistent error contract",
+  "startedAt": "2026-11-25T13:41:01.658Z",
+  "expected": {
+    "status": 400,
+    "code": "MALFORMED_JSON",
+    "hasRequestId": true,
+    "leaksParserText": false
+  },
+  "actual": {
+    "status": 400,
+    "code": "MALFORMED_JSON",
+    "hasRequestId": true,
+    "leaksParserText": false
+  },
+  "pass": true,
+  "ms": 2
+}

@@ -1,0 +1,20 @@
+{
+  "id": "S3",
+  "label": "03-after-ui-fixes",
+  "topic": "hardening",
+  "title": "Repeated failed logins are rate limited",
+  "startedAt": "2026-11-25T14:21:26.942Z",
+  "expected": {
+    "limited": true,
+    "status": 429,
+    "hasRetryAfter": true
+  },
+  "actual": {
+    "limited": true,
+    "status": 429,
+    "hasRetryAfter": true
+  },
+  "pass": true,
+  "ms": 2,
+  "note": "status sequence 401,401,401,401,401,401,401,401,401,401,429"
+}

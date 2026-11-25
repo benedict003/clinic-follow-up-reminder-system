@@ -1,0 +1,20 @@
+{
+  "id": "R2",
+  "label": "02-hardened",
+  "topic": "reliability",
+  "title": "A gateway that never answers times out and is bounded",
+  "startedAt": "2026-11-25T13:41:03.761Z",
+  "expected": {
+    "status": "needs_human",
+    "timedOut": true,
+    "attemptsWithinLimit": true
+  },
+  "actual": {
+    "status": "needs_human",
+    "timedOut": true,
+    "attemptsWithinLimit": true
+  },
+  "pass": true,
+  "ms": 0,
+  "note": "job #3; attempt codes TIMEOUT,TIMEOUT,TIMEOUT"
+}

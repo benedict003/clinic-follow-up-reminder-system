@@ -1,0 +1,21 @@
+{
+  "id": "S5",
+  "label": "02-hardened",
+  "topic": "hardening",
+  "title": "A non-numeric path parameter is a client error, not a server error",
+  "startedAt": "2026-11-25T13:41:07.874Z",
+  "expected": {
+    "status": 400,
+    "code": "INVALID_PARAMETER",
+    "hasRequestId": true,
+    "leaksInternals": false
+  },
+  "actual": {
+    "status": 400,
+    "code": "INVALID_PARAMETER",
+    "hasRequestId": true,
+    "leaksInternals": false
+  },
+  "pass": true,
+  "ms": 2
+}

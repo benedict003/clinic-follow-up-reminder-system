@@ -1,0 +1,21 @@
+{
+  "id": "F2",
+  "label": "01-baseline",
+  "topic": "authentication",
+  "title": "Doctor signs in and receives a session cookie and CSRF token",
+  "startedAt": "2026-11-25T13:32:19.082Z",
+  "expected": {
+    "status": 200,
+    "hasCookie": true,
+    "hasCsrf": true,
+    "role": "doctor"
+  },
+  "actual": {
+    "status": 200,
+    "hasCookie": true,
+    "hasCsrf": true,
+    "role": "doctor"
+  },
+  "pass": true,
+  "ms": 53
+}

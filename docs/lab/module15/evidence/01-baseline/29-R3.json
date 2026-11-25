@@ -1,0 +1,16 @@
+{
+  "id": "R3",
+  "label": "01-baseline",
+  "topic": "reliability",
+  "title": "The same path succeeds once the gateway recovers",
+  "startedAt": "2026-11-25T13:32:23.919Z",
+  "expected": {
+    "status": "succeeded"
+  },
+  "actual": {
+    "status": "succeeded"
+  },
+  "pass": true,
+  "ms": 0,
+  "note": "job #4"
+}

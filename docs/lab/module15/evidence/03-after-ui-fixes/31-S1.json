@@ -1,0 +1,25 @@
+{
+  "id": "S1",
+  "label": "03-after-ui-fixes",
+  "topic": "hardening",
+  "title": "Security headers are present on API responses",
+  "startedAt": "2026-11-25T14:21:26.938Z",
+  "expected": {
+    "nosniff": "nosniff",
+    "frame": "DENY",
+    "referrer": "no-referrer",
+    "csp": true,
+    "permissions": true,
+    "requestId": true
+  },
+  "actual": {
+    "nosniff": "nosniff",
+    "frame": "DENY",
+    "referrer": "no-referrer",
+    "csp": true,
+    "permissions": true,
+    "requestId": true
+  },
+  "pass": true,
+  "ms": 1
+}

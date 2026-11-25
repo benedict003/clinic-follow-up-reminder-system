@@ -1,0 +1,17 @@
+{
+  "id": "S6",
+  "label": "03-after-ui-fixes",
+  "topic": "hardening",
+  "title": "A refusal from the exchange layer keeps its declared status and code",
+  "startedAt": "2026-11-25T14:21:27.837Z",
+  "expected": {
+    "status": 409,
+    "code": "FOLLOW_UP_NOT_DISCLOSABLE"
+  },
+  "actual": {
+    "status": 409,
+    "code": "FOLLOW_UP_NOT_DISCLOSABLE"
+  },
+  "pass": true,
+  "ms": 4
+}

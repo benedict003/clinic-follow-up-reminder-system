@@ -1,0 +1,15 @@
+{
+  "id": "A3",
+  "label": "03-after-ui-fixes",
+  "topic": "authentication",
+  "title": "A write without a CSRF token is refused",
+  "startedAt": "2026-11-25T14:21:21.362Z",
+  "expected": {
+    "status": 403
+  },
+  "actual": {
+    "status": 403
+  },
+  "pass": true,
+  "ms": 2
+}

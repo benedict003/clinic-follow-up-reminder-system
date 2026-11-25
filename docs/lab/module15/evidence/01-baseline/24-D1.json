@@ -1,0 +1,21 @@
+{
+  "id": "D1",
+  "label": "01-baseline",
+  "topic": "duplicate",
+  "title": "Queueing the same reminder twice is idempotent",
+  "startedAt": "2026-11-25T13:32:19.359Z",
+  "expected": {
+    "firstStatus": 201,
+    "secondStatus": 200,
+    "deduplicated": true,
+    "sameJob": true
+  },
+  "actual": {
+    "firstStatus": 201,
+    "secondStatus": 200,
+    "deduplicated": true,
+    "sameJob": true
+  },
+  "pass": true,
+  "ms": 7
+}

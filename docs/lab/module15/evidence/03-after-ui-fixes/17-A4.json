@@ -1,0 +1,15 @@
+{
+  "id": "A4",
+  "label": "03-after-ui-fixes",
+  "topic": "authentication",
+  "title": "A write with the wrong CSRF token is refused",
+  "startedAt": "2026-11-25T14:21:21.365Z",
+  "expected": {
+    "status": 403
+  },
+  "actual": {
+    "status": 403
+  },
+  "pass": true,
+  "ms": 2
+}
