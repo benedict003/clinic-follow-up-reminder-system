@@ -183,17 +183,22 @@ export async function listJobs({ status = '', limit = 50 } = {}, actor) {
   };
 }
 
-export async function findJobDetail(id) {
+export async function findJobDetail(id, actor = null) {
   const job = await findJob(id);
   const [attempts] = await pool.execute(
     `SELECT attempt_no, correlation_id, started_at, duration_ms, outcome,
             http_status, error_code, error_text, actor_note
        FROM reminder_attempts WHERE job_id = ? ORDER BY id`, [id]
   );
-  const [alerts] = await pool.execute(
-    `SELECT id, role, message, created_at, read_at
-       FROM reminder_alerts WHERE job_id = ? ORDER BY id`, [id]
-  );
+  // Alerts are addressed to a role. A caller in another role gets an empty list
+  // rather than a filtered one, so the response cannot be used to infer that a
+  // doctor-directed alert exists at all.
+  const viewerRole = actor?.role ?? cfg.alertRole;
+  const [alerts] = viewerRole === cfg.alertRole
+    ? await pool.execute(
+      `SELECT id, role, message, created_at, read_at
+         FROM reminder_alerts WHERE job_id = ? ORDER BY id`, [id])
+    : [[]];
   return {
     job,
     attempts: attempts.map(a => ({

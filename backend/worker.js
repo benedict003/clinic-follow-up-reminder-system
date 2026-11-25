@@ -29,7 +29,13 @@ async function callGateway(body, correlationId) {
     return { startedAt, durationMs: Date.now() - t0, httpStatus: res.status,
       retryAfterSeconds: Number.isFinite(ra) ? ra : null };
   } catch (e) {
-    const code = e?.cause?.code || e?.code || (e?.name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK_ERROR');
+    // AbortSignal.timeout() rejects with a DOMException whose numeric code (23)
+    // is meaningless in an attempt record. Check the name first so the stored
+    // code says TIMEOUT and an operator can tell a slow partner from a dead one.
+    const code = e?.name === 'TimeoutError' || e?.name === 'AbortError'
+      ? 'TIMEOUT'
+      : (typeof e?.cause?.code === 'string' ? e.cause.code
+        : (typeof e?.code === 'string' ? e.code : 'NETWORK_ERROR'));
     return { startedAt, durationMs: Date.now() - t0, httpStatus: null, errorCode: code,
       errorText: code === 'TIMEOUT' ? `No response within ${cfg.timeoutMs} ms` : 'Gateway unreachable' };
   }

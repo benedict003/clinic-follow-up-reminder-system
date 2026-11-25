@@ -10,6 +10,26 @@ function actorOf(req) {
   return req.session?.user ?? null;
 }
 
+/**
+ * A path parameter that reaches SQL must be a positive whole number.
+ *
+ * `Number('abc')` is NaN, and handing NaN to the driver raised an internal error:
+ * a malformed URL therefore answered 500 instead of 400, which is both dishonest
+ * (the client was wrong, not the server) and a small signpost that the parameter
+ * is passed straight through. Validated once, here, for every route below.
+ */
+function followUpIdOf(req) {
+  const raw = req.params.followUpId;
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id < 1) {
+    const e = new Error(`"${String(raw).slice(0, 20)}" is not a follow-up id.`);
+    e.status = 400;
+    e.apiCode = 'INVALID_PARAMETER';
+    throw e;
+  }
+  return id;
+}
+
 function doctorOnly(req, res, next) {
   const actor = actorOf(req);
   if (!actor) return res.status(401).json({ error: 'Authentication required.' });
@@ -29,17 +49,18 @@ export function attachSecureApi(app) {
 
   // Read-only and already minimised: a nurse may preview what would leave.
   app.get('/api/secure/preview/:followUpId', wrap(async (req, res) => {
-    res.json(await preview(Number(req.params.followUpId)));
+    res.json(await preview(followUpIdOf(req)));
   }));
 
   app.post('/api/secure/send/:followUpId', doctorOnly, wrap(async (req, res) => {
-    const out = await sendSecureRecord(Number(req.params.followUpId), req.actor);
+    const out = await sendSecureRecord(followUpIdOf(req), req.actor);
     res.status(out.ok ? 200 : (out.status || 502)).json(out);
   }));
 
   // Names which records left the clinic, so gated like the action creating it.
   app.get('/api/secure/messages', doctorOnly, wrap(async (req, res) => {
-    res.json({ messages: await history(Number(req.query.limit || 25)) });
+    const limit = Number(req.query.limit || 25);
+    res.json({ messages: await history(Number.isFinite(limit) ? limit : 25) });
   }));
 
   console.log(JSON.stringify({
