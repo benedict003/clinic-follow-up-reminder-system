@@ -382,6 +382,7 @@ body.push(table([
   ['D-08', 'Tabs drew two title bars', 'Low - cosmetic, reads as broken', 'Fixed, recaptured'],
   ['D-09', 'Failure banner printed a raw ClientException and an internal path', 'Medium - usability and disclosure', 'Fixed, recaptured'],
   ['D-10', 'Access log recorded router-trimmed paths', 'Low - correlation quality', 'Fixed, third run'],
+  ['D-11', 'Generated documents refused by Word (undeclared XML namespace)', 'Submission', 'High - the deliverable would not open', 'Fixed, opened in Word'],
 ], [700, 3900, 2650, 2100]));
 body.push(caption('Table 10.1 - Defect register. Full reproduction, cause, fix and retest in DEFECTS.md.'));
 body.push(p('**D-01, in full, because it is the clearest example of evidence changing a view.** The case measures a median over five attempts each, not a single request. Before: 39 ms for a real account, 2 ms for an unknown one. The cause is a short-circuit in the login handler \u2014 with no user row, `scrypt` never ran, so the response was the cost of a database lookup. The consequence is not that an attacker can log in; it is that an attacker can enumerate which staff accounts exist, which is the reconnaissance step before a targeted attempt. The fix verifies the submitted password against a precomputed dummy hash when the row is missing, so both paths cost the same work. After: 40 ms and 41 ms. That second number is the useful one \u2014 it went *up*, because an unknown user now does real work instead of none.'));
@@ -567,7 +568,11 @@ const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" '
   + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
   + 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
-  + 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">'
+  + 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" '
+  + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+  + 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+  + 'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" '
+  + 'mc:Ignorable="w14">'
   + `<w:body>${body.join('')}`
   + '<w:sectPr><w:pgSz w:h="15840" w:w="12240" w:orient="portrait"/>'
   + '<w:pgMar w:bottom="1440" w:top="1440" w:left="1440" w:right="1440" w:header="720" w:footer="720"/>'
