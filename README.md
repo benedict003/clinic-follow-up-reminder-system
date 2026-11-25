@@ -17,10 +17,27 @@ Flutter Web on the front, everything on loopback with fictional data.
 | 14 | Secure exchange: a minimised record sealed for one partner, with a receipt | `docs/lab/module14/` | `module14` |
 | 15 | Integration testing and security hardening of everything above | `Module15/`, `docs/lab/module15/` | `module15` |
 | 16 | Performance, reliability and deployment evaluation: a measured workload, readiness vs liveness, compression, rollback rehearsal | `Module16/`, `docs/lab/module16/` | `module16` |
+| 17 | UAT, final technical evaluation, architecture recommendation and the handover pack | `Module17/`, `docs/lab/module17/` | `module17` |
 
 Each module folder holds three documents: the report, the evidence portfolio and
 an operational manual. The working evidence (runs, captures, logs) lives under
 `docs/lab/moduleNN/evidence/`.
+
+### Module 17 at a glance
+
+| | Result |
+| --- | --- |
+| UAT | 8 scenarios, **8/8 accepted** after one fix (first run 7/8, kept on the record) |
+| Contract | `docs/openapi.yaml`, 28 operations; conformance check confirms every one exists |
+| Defect found by UAT | F-01: one error class answered with two different codes — invisible to four modules of automated tests |
+| Handover | `docs/lab/module17/HANDOVER.md` — setup, config, data model, API, tests, deploy, monitoring, limitations, support, change control |
+| Office acceptance | **unsigned** — the learner acted each role; the office session is still owed |
+
+```powershell
+cd backend
+node --env-file=.env tests/m17-uat.js --label 07-review
+# expected: 8/8 accepted · spec conforms
+```
 
 ### Module 16 at a glance
 
@@ -442,6 +459,7 @@ its own database or a temporary directory.
 | Flutter widget tests | `flutter test` | 20 |
 | Performance + reliability | `cd backend && node --env-file=.env tests/m16-perf.js --phase full` | 5 journeys, 3 levels |
 | Rollback rehearsal | `cd backend && node --env-file=.env tests/m16-rollback.js` | backup / damage / restore / verify |
+| UAT + spec conformance | `cd backend && node --env-file=.env tests/m17-uat.js` | 8 scenarios, 28 operations |
 
 The collection owns `clinic_followup_m15` and ports 3411/4799. It drops the database at
 the start of every run, so a run is always from the same starting state. Failure

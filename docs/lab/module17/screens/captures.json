@@ -1,0 +1,53 @@
+{
+  "capturedAt": "2026-11-25T16:05:13.390Z",
+  "app": "http://localhost:3400/app/",
+  "database": "clinic_followup_m17",
+  "note": "One capture per UAT scenario. UAT-4 and UAT-5 are API-level decisions with no distinct screen; see 17-09 for the narrow-width presentation the office asked about.",
+  "captures": [
+    {
+      "file": "17-01-uat1-worklist.png",
+      "scenario": "UAT-1",
+      "caption": "the worklist a clinician lands on, naming who is late"
+    },
+    {
+      "file": "17-02-uat2-board.png",
+      "scenario": "UAT-2",
+      "caption": "the board before a contact attempt: the row a nurse picks up"
+    },
+    {
+      "file": "17-03-uat2-contact-sheet.png",
+      "scenario": "UAT-2",
+      "caption": "the contact vocabulary: only \"reached\" moves the record to Reminded"
+    },
+    {
+      "file": "17-04-uat2-record-reminded.png",
+      "scenario": "UAT-2",
+      "caption": "after the attempt: status Reminded, and an audit row naming the nurse"
+    },
+    {
+      "file": "17-05-uat3-nurse-board.png",
+      "scenario": "UAT-3",
+      "caption": "the same board as a nurse: no close action offered"
+    },
+    {
+      "file": "17-06-uat6-nurse-forbidden.png",
+      "scenario": "UAT-6",
+      "caption": "the nurse view of a record: record and reschedule offered, close absent with an explanation in its place"
+    },
+    {
+      "file": "17-07-uat7-disclosure.png",
+      "scenario": "UAT-7",
+      "caption": "the disclosure screen: the withheld field list and the key fingerprints this process holds"
+    },
+    {
+      "file": "17-08-uat8-failure.png",
+      "scenario": "UAT-8",
+      "caption": "adverse case: the server is gone, and the screen says what to do in words a clinician can act on"
+    },
+    {
+      "file": "17-09-uat5-board-380.png",
+      "scenario": "UAT-5",
+      "caption": "the board at 380: the phone-width check the office asked about"
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "label": "02-uat-retest",
+  "ranAt": "2026-11-25T15:51:38.390Z",
+  "spec": {
+    "documentedOperations": 28,
+    "existing": 28,
+    "missing": [],
+    "conforms": true
+  },
+  "scenarios": [
+    {
+      "id": "UAT-1",
+      "title": "A clinician can see today's work on arrival",
+      "role": "doctor",
+      "acceptance": "The first screen names who is late and who is due today.",
+      "pass": true,
+      "ms": 8,
+      "observed": {
+        "status": 200,
+        "counts": {
+          "overdue": 1,
+          "dueToday": 2,
+          "upcoming": 3,
+          "open": 6,
+          "needsHuman": 0,
+          "queued": 0,
+          "succeeded": 0,
+          "contactsToday": 0,
+          "unreadAlerts": 0
+        },
+        "overdueRows": 1,
+        "today": "2026-11-25"
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-2",
+      "title": "A nurse records a contact attempt and the record shows who and what",
+      "role": "nurse",
+      "acceptance": "Reaching the patient moves the record to Reminded and appends an audit row naming the nurse.",
+      "pass": true,
+      "ms": 11,
+      "observed": {
+        "status": 200,
+        "newStatus": "reminded",
+        "event": {
+          "kind": "contacted",
+          "outcome": "reached",
+          "actor": "Fictional Nurse",
+          "role": "nurse"
+        }
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-3",
+      "title": "An unanswered call leaves the record scheduled with the attempt counted",
+      "role": "nurse",
+      "acceptance": "Only \"reached\" advances the status; the attempt is still recorded.",
+      "pass": true,
+      "ms": 3,
+      "observed": {
+        "status": 200,
+        "recordStatus": "scheduled",
+        "attempts": 1
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-4",
+      "title": "Rescheduling supersedes the queued reminder",
+      "role": "doctor",
+      "acceptance": "A moved date increments the revision and marks the old reminder obsolete, so the patient is not chased twice.",
+      "pass": true,
+      "ms": 13,
+      "observed": {
+        "queueStatus": 201,
+        "rescheduleStatus": 200,
+        "newDue": "2026-12-04",
+        "superseded": 1,
+        "jobStatus": "obsolete"
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-5",
+      "title": "A closed record cannot be disclosed, and the refusal is explained",
+      "role": "doctor",
+      "acceptance": "The send is refused with a code and a sentence a clinician can act on, not a generic server error.",
+      "pass": true,
+      "ms": 5,
+      "observed": {
+        "closeStatus": 200,
+        "sendStatus": 409,
+        "code": "FOLLOW_UP_NOT_DISCLOSABLE",
+        "message": "A closed follow-up cannot be disclosed."
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-6",
+      "title": "Only a doctor can close a follow-up",
+      "role": "nurse",
+      "acceptance": "The server refuses the role, not just the interface, and returns a traceable request id.",
+      "pass": true,
+      "ms": 1,
+      "observed": {
+        "status": 403,
+        "code": "FORBIDDEN_ROLE",
+        "requestId": "06bf4750-ba3e-4e11-8714-b45d168147b5"
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-7",
+      "title": "The disclosure shows the exact bytes that would leave, and what stays",
+      "role": "doctor",
+      "acceptance": "A clinician can see the minimised payload before deciding, including the field list that never leaves.",
+      "pass": true,
+      "ms": 2,
+      "observed": {
+        "status": 200,
+        "sentFields": [
+          "recordRef",
+          "dueDate",
+          "status",
+          "action"
+        ],
+        "withheldCount": 5,
+        "plaintextBytes": 99
+      },
+      "disposition": "Accepted"
+    },
+    {
+      "id": "UAT-8",
+      "title": "Bad input and unknown routes answer safely and traceably",
+      "role": "both",
+      "acceptance": "A caller gets a code and a request id, and nothing internal leaks.",
+      "pass": true,
+      "ms": 3,
+      "observed": {
+        "badParamStatus": 400,
+        "badParamCode": "INVALID_PARAMETER",
+        "unknownRouteStatus": 404,
+        "hasRequestId": true
+      },
+      "disposition": "Accepted"
+    }
+  ],
+  "findings": [],
+  "summary": {
+    "scenarios": 8,
+    "accepted": 8,
+    "defects": 0,
+    "specConforms": true
+  }
+}
